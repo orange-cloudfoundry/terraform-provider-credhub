@@ -1,0 +1,61 @@
+{
+	"comment": "",
+	"ignore": "test github.com/hashicorp/terraform github.com/onsi",
+	"package": [
+		{
+			"checksumSHA1": "xlE6mwC9lTeJrnoif0e5exvaFpk=",
+			"path": "github.com/azer/snakecase",
+			"revision": "c818dddafb5c91bd13275f49b08e38a489cbef5f",
+			"revisionTime": "2016-10-28T11:43:25Z"
+		},
+		{
+			"checksumSHA1": "SAwAUNWgyl0lw10RRGpNg7kow3w=",
+			"path": "github.com/cloudfoundry-incubator/credhub-cli/credhub",
+			"revision": "1a88d96dfb501da0a92b88b5ee647ebc03615b83",
+			"revisionTime": "2017-09-14T20:56:03Z"
+		},
+		{
+			"checksumSHA1": "Ip0+Ez7DLkmCIllg4nWX2HaZrC8=",
+			"path": "github.com/cloudfoundry-incubator/credhub-cli/credhub/auth",
+			"revision": "1a88d96dfb501da0a92b88b5ee647ebc03615b83",
+			"revisionTime": "2017-09-14T20:56:03Z"
+		},
+		{
+			"checksumSHA1": "3A2oILppJzYGEN4S1LAHBsZSw/s=",
+			"path": "github.com/cloudfoundry-incubator/credhub-cli/credhub/auth/uaa",
+			"revision": "1a88d96dfb501da0a92b88b5ee647ebc03615b83",
+			"revisionTime": "2017-09-14T20:56:03Z"
+		},
+		{
+			"checksumSHA1": "aPxE5PQItqn4VgGXHHULaWQ4GN8=",
+			"path": "github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials",
+			"revision": "1a88d96dfb501da0a92b88b5ee647ebc03615b83",
+			"revisionTime": "2017-09-14T20:56:03Z"
+		},
+		{
+			"checksumSHA1": "WDotTqWoUsW/H2CHHffboJawlVA=",
+			"path": "github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/generate",
+			"revision": "1a88d96dfb501da0a92b88b5ee647ebc03615b83",
+			"revisionTime": "2017-09-14T20:56:03Z"
+		},
+		{
+			"checksumSHA1": "zMUYQyStlKOvZhh/ApEA9myuPNE=",
+			"path": "github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values",
+			"revision": "1a88d96dfb501da0a92b88b5ee647ebc03615b83",
+			"revisionTime": "2017-09-14T20:56:03Z"
+		},
+		{
+			"checksumSHA1": "rfsiMpyZG8G8zSFuHSQKM25n49c=",
+			"path": "github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions",
+			"revision": "1a88d96dfb501da0a92b88b5ee647ebc03615b83",
+			"revisionTime": "2017-09-14T20:56:03Z"
+		},
+		{
+			"checksumSHA1": "sIoahZ3Na4UmNRDoAZbSPrmXlmA=",
+			"path": "github.com/cloudfoundry-incubator/credhub-cli/credhub/server",
+			"revision": "1a88d96dfb501da0a92b88b5ee647ebc03615b83",
+			"revisionTime": "2017-09-14T20:56:03Z"
+		}
+	],
+	"rootPath": "github.com/orange-cloudfoundry/terraform-provider-credhub"
+}
