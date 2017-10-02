@@ -85,12 +85,12 @@ provider "credhub" {
   - [User](#user)
   - [Generic](#generic-1)
 
-### Resources
+## Resources
 
 **IMPORTANT:** Generate resources are most secure resources, you will never have to set secure data as plain text. 
 Data from credentials are never stored in your tfstate either, this provider create a fingerprint of this data to determine if it should be update or not.
 
-#### Generate password
+### Generate password
 
 ```hcl
 resource "credhub_password" "mypassword" {
@@ -113,7 +113,9 @@ This actually imply that a cron will recall terraform apply/plan.
 - **exclude_number**: (*Optional*, Default: *Default value from credhub*) Exclude number characters from generated credential value.
 - **include_special**: (*Optional*, Default: *Default value from credhub*) Include special characters from generated credential value.
 
-#### Generate certificate
+---
+
+### Generate certificate
 
 ```hcl
 resource "credhub_certificate" "test2" {
@@ -160,7 +162,9 @@ Acceptable key usages are `digital_signature`, `non_repudiation`, `key_encipherm
 
 <sup>2</sup>: At least one signing parameter must be provided.
 
-#### Generate RSA
+---
+
+### Generate RSA
 
 ```hcl
 resource "credhub_rsa" "myrsa" {
@@ -175,7 +179,9 @@ resource "credhub_rsa" "myrsa" {
 This actually imply that a cron will recall terraform apply/plan.
 - **key_length**: (*Optional*, Default: *Default value from credhub*) Key length of generated credential value. Values can be `2048`, `3072` or `4096`.
 
-#### Generate SSH
+---
+
+### Generate SSH
 
 ```hcl
 resource "credhub_ssh" "myssh" {
@@ -192,24 +198,9 @@ This actually imply that a cron will recall terraform apply/plan.
 - **key_length**: (*Optional*, Default: *Default value from credhub*) Key length of generated credential value. Values can be `2048`, `3072` or `4096`.
 - **ssh_comment**: (*Optional*, Default: *NULL*) SSH comment of generated credential value.
 
-#### Generate SSH
+---
 
-```hcl
-resource "credhub_ssh" "myssh" {
-  name = "myssh"
-  rotate_interval = "1y" // 1 year
-  key_length = 2048
-  ssh_comment = ""
-}
-```
-
-- **name**: (**Required**) Name of your credential
-- **rotate_interval**: (*Optional*, Default: *Null*) If defined provider will mark the resource as a dirty to regenerate a new password, this is an helper to do password rotation. 
-This actually imply that a cron will recall terraform apply/plan.
-- **key_length**: (*Optional*, Default: *Default value from credhub*) Key length of generated credential value. Values can be `2048`, `3072` or `4096`.
-- **ssh_comment**: (*Optional*, Default: *NULL*) SSH comment of generated credential value.
-
-#### Generate user
+### Generate user
 
 ```hcl
 resource "credhub_user" "myuser" {
@@ -234,7 +225,9 @@ This actually imply that a cron will recall terraform apply/plan.
 - **exclude_number**: (*Optional*, Default: *Default value from credhub*) Exclude number characters from generated credential value.
 - **include_special**: (*Optional*, Default: *Default value from credhub*) Include special characters from generated credential value.
 
-#### Generic
+---
+
+### Generic
 
 This generic resource has been made to prevent any future update on credhub which is could not yet implemented in this provider.
 
@@ -280,11 +273,13 @@ resource "credhub_generic" "myjson" {
 - **data_credential**: (*Optional*, Default: *NULL*) A map with string values as credential parameter. This can't be use with `data_json` or `data_value`.
 - **data_json**: (*Optional*, Default: *NULL*) A json string as credential parameter. This can't be use with `data_credential` or `data_value`.
 
-### Datasources
+---
+
+## Datasources
 
 **Note**: Computed parameters is what has been filled by the data source, this is what you can use after.
 
-#### Value
+### Value
 
 ```hcl
 data "credhub_value" "my_data" {
@@ -299,7 +294,9 @@ data "credhub_value" "my_data" {
 - **type**: (*Computed*) This is the type of your credential but here it will be always `value`.
 - **value**: (*Computed*) Data value from your credential.
 
-#### Json
+---
+
+### Json
 
 ```hcl
 data "credhub_json" "my_data" {
@@ -314,7 +311,9 @@ data "credhub_json" "my_data" {
 - **type**: (*Computed*) This is the type of your credential but here it will be always `json`.
 - **json**: (*Computed*) Data in json format (as plain text) from your credential.
 
-#### Password
+---
+
+### Password
 
 ```hcl
 data "credhub_password" "my_data" {
@@ -329,7 +328,9 @@ data "credhub_password" "my_data" {
 - **type**: (*Computed*) This is the type of your credential but here it will be always `password`.
 - **password**: (*Computed*) Password from your credential.
 
-#### Certificate
+---
+
+### Certificate
 
 ```hcl
 data "credhub_certificate" "my_data" {
@@ -347,7 +348,9 @@ data "credhub_certificate" "my_data" {
 - **certificate**: (*Computed*) Certificate in pem format from your credential.
 - **private_key**: (*Computed*) Private key in pem format from your credential.
 
-#### RSA
+---
+
+### RSA
 
 ```hcl
 data "credhub_rsa" "my_data" {
@@ -363,7 +366,9 @@ data "credhub_rsa" "my_data" {
 - **public_key**: (*Computed*) Public key from your credential.
 - **private_key**: (*Computed*) Private key from your credential.
 
-#### SSH
+---
+
+### SSH
 
 ```hcl
 data "credhub_ssh" "my_data" {
@@ -379,7 +384,9 @@ data "credhub_ssh" "my_data" {
 - **public_key**: (*Computed*) Public key from your credential.
 - **private_key**: (*Computed*) Private key from your credential.
 
-#### User
+---
+
+### User
 
 ```hcl
 data "credhub_user" "my_data" {
@@ -395,7 +402,9 @@ data "credhub_user" "my_data" {
 - **username**: (*Computed*) Username from your credential.
 - **password**: (*Computed*) Password from your credential.
 
-#### Generic
+---
+
+### Generic
 
 This generic datasource has been made to prevent any future update on credhub which is could not yet implemented in this provider.
 
