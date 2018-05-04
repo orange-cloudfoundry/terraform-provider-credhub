@@ -1,6 +1,6 @@
 # terraform-provider-credhub  [![Build Status](https://travis-ci.org/orange-cloudfoundry/terraform-provider-credhub.svg?branch=master)](https://travis-ci.org/orange-cloudfoundry/terraform-provider-credhub)
 
-This terraform provider let you create and retrieve credentials from [credhub](https://github.com/cloudfoundry-incubator/credhub).
+This terraform provider lets you create and retrieve credentials from [credhub](https://github.com/cloudfoundry-incubator/credhub).
 
 
 ## Installations
@@ -42,7 +42,7 @@ providers {
 EOF
 ```
 
-6. you can now performs any terraform action on [credhub](https://github.com/cloudfoundry-incubator/credhub) resources
+6. you can now perform any terraform action on [credhub](https://github.com/cloudfoundry-incubator/credhub) resources
 
 ## provider configuration
 
@@ -87,8 +87,7 @@ provider "credhub" {
 
 ## Resources
 
-**IMPORTANT:** Generate resources are most secure resources, you will never have to set secure data as plain text. 
-Data from credentials are never stored in your tfstate either, this provider create a fingerprint of this data to determine if it should be update or not.
+**IMPORTANT**: Credhub-generated resources are most secure as you will never have to set confidential data as plain text in TF specs (in comparison to use of the `credhub_generic` resource). Data from Credhub-generated resources are never stored in your tfstate either: this provider stores instead a fingerprint of this data in the tfstate, and uses this fingerprint to determine if it should be updated or not.
 
 ### Generate password
 
@@ -406,7 +405,7 @@ data "credhub_user" "my_data" {
 
 ### Generic
 
-This generic datasource has been made to prevent any future update on credhub which is could not yet implemented in this provider.
+This generic datasource has been made to support any future type on credhub which is could not yet implemented in this provider.
 
 To see what you can do on credhub you can have look at: http://credhub-api.cfapps.io
 
