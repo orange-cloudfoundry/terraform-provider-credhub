@@ -2,14 +2,8 @@
 
 set -e
 
-if [ $# -eq 0 ]
-  then
-    echo "Usage $0 <version_terraform>"
-    exit 1
-fi
-
 OUTDIR=$(dirname $0)/../out
-BINARYNAME="terraform-provider-credhub_$1"
+BINARYNAME="terraform-provider-credhub"
 
 GOARCH=amd64 GOOS=windows $(dirname $0)/build $1 && cp $OUTDIR/$BINARYNAME "$OUTDIR/${BINARYNAME}_windows_amd64.exe"
 GOARCH=386 GOOS=windows $(dirname $0)/build $1 && cp $OUTDIR/$BINARYNAME "$OUTDIR/${BINARYNAME}_windows_386.exe"
