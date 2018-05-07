@@ -4,14 +4,7 @@ set -e
 
 echo -e "\nGenerating Binary for ${GOOS} on arch ${GOARCH}..."
 
-if [ $# -eq 0 ]
-  then
-    echo "Usage $0 <version_terraform>"
-    exit 1
-fi
-
-
 CURRENTDIR=`pwd`
 
-CGO_ENABLED=0 go build -o $CURRENTDIR/out/terraform-provider-credhub_$1
+CGO_ENABLED=0 go build -o $CURRENTDIR/out/terraform-provider-credhub
 echo -e "\nGenerating Binary finished."
