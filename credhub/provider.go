@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"strings"
+	"os"
 )
 
 func Provider() terraform.ResourceProvider {
