@@ -10,7 +10,7 @@ metadata:
   shortname: credhub
 asset_template: "{{.Name}}_{{.OS}}_{{.Arch}}"
 install_path: "{{.Home}}/.terraform.d/providers/{{.Name}}"
-install:
+after_success:
 - |
   grep -Fxq "providers {" ~/.terraformrc &> /dev/null
   if [[ $? != 0 ]]; then
