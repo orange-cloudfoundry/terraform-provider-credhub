@@ -1,27 +1,13 @@
 package credhub
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"strings"
-	"time"
 )
-
-const (
-	TOKENS_FILENAME = "tf-credhub-tokens.json"
-)
-
-type Tokens struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
 
 func Provider() terraform.ResourceProvider {
 
@@ -96,6 +82,7 @@ func Provider() terraform.ResourceProvider {
 		ConfigureFunc: providerConfigure,
 	}
 }
+
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	apiEndpoint := strings.TrimPrefix(d.Get("credhub_server").(string), "http://")
 	if !strings.HasPrefix(apiEndpoint, "https://") {
@@ -108,15 +95,12 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	if (username == "" || password == "") && (clientId == "" || clientSecret == "") {
 		return nil, fmt.Errorf("One of pair Username/Password or Client_id/client_secret must be set.")
 	}
-	tokens, err := retrieveTokens()
-	if err != nil {
-		return nil, err
-	}
+
 	options := make([]credhub.Option, 0)
 	if username != "" && password != "" {
-		options = append(options, credhub.Auth(auth.Uaa(clientId, clientSecret, username, password, tokens.AccessToken, tokens.RefreshToken, false)))
+		options = append(options, credhub.Auth(auth.Uaa(clientId, clientSecret, username, password, "", "", false)))
 	} else {
-		options = append(options, credhub.Auth(auth.Uaa(clientId, clientSecret, username, password, tokens.AccessToken, tokens.RefreshToken, true)))
+		options = append(options, credhub.Auth(auth.Uaa(clientId, clientSecret, username, password, "", "", true)))
 	}
 	if d.Get("skip_ssl_validation").(bool) {
 		options = append(options, credhub.SkipTLSValidation(true))
@@ -136,14 +120,9 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, err
 	}
 
-	tokens.AccessToken = oauthStrategy.AccessToken()
-	tokens.RefreshToken = oauthStrategy.RefreshToken()
-	err = storeTokens(tokens)
-	if err != nil {
-		return nil, err
-	}
 	return client, nil
 }
+
 func uaaLogin(client *credhub.CredHub, oauthStrat *auth.OAuthStrategy) error {
 	_, err := client.GetById("fake")
 	if err == nil || !strings.Contains(err.Error(), "invalid_token") {
@@ -151,30 +130,4 @@ func uaaLogin(client *credhub.CredHub, oauthStrat *auth.OAuthStrategy) error {
 	}
 	oauthStrat.SetTokens("", "")
 	return oauthStrat.Login()
-}
-func retrieveTokens() (Tokens, error) {
-	tokenPath := filepath.Join(os.TempDir(), TOKENS_FILENAME)
-
-	if _, err := os.Stat(tokenPath); os.IsNotExist(err) {
-		return Tokens{}, nil
-	}
-	b, err := ioutil.ReadFile(tokenPath)
-	if err != nil {
-		return Tokens{}, err
-	}
-	var tokens Tokens
-	err = json.Unmarshal(b, &tokens)
-	if err != nil {
-		return Tokens{}, err
-	}
-	return tokens, nil
-}
-func storeTokens(tokens Tokens, fail ...bool) error {
-	b, _ := json.Marshal(tokens)
-	err := ioutil.WriteFile(filepath.Join(os.TempDir(), TOKENS_FILENAME), b, 0644)
-	if err != nil && len(fail) == 0 {
-		time.Sleep(time.Millisecond * 5)
-		return storeTokens(tokens, true)
-	}
-	return err
 }

@@ -18,10 +18,12 @@ type Resource interface {
 	Update(*schema.ResourceData, interface{}) error
 	Schema() map[string]*schema.Schema
 }
+
 type GenerateResource interface {
 	Create(*schema.ResourceData, interface{}) error
 	Schema() map[string]*schema.Schema
 }
+
 type DataSource interface {
 	DataSourceSchema() map[string]*schema.Schema
 	DataSourceRead(*schema.ResourceData, interface{}) error
@@ -59,6 +61,7 @@ func LoadGenerateResource(resource GenerateResource) *schema.Resource {
 		Schema: resSchema,
 	}
 }
+
 func LoadResource(resource Resource) *schema.Resource {
 	resSchema := resource.Schema()
 	resSchema["name"] = &schema.Schema{
@@ -75,6 +78,7 @@ func LoadResource(resource Resource) *schema.Resource {
 		Schema: resSchema,
 	}
 }
+
 func LoadDataSource(DataSource DataSource) *schema.Resource {
 	return &schema.Resource{
 		Read:   DataSource.DataSourceRead,
@@ -86,16 +90,19 @@ func Name(d *schema.ResourceData) string {
 
 	return d.Get("name").(string)
 }
+
 func SetName(d *schema.ResourceData, value string) {
 
 	d.Set("name", value)
 }
+
 func transformCredhubError(err error) error {
 	if errResp, ok := err.(*credhub.Error); ok {
 		return fmt.Errorf("%s: %s", errResp.Name, errResp.Description)
 	}
 	return err
 }
+
 func CreateCreateFunc(create func(d *schema.ResourceData, meta interface{}) error) func(d *schema.ResourceData, meta interface{}) error {
 	return func(d *schema.ResourceData, meta interface{}) error {
 		err := create(d, meta)
@@ -112,6 +119,7 @@ func CreateCreateFunc(create func(d *schema.ResourceData, meta interface{}) erro
 		return nil
 	}
 }
+
 func Delete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*credhub.CredHub)
 	cred, err := client.GetById(d.Id())
@@ -120,6 +128,7 @@ func Delete(d *schema.ResourceData, meta interface{}) error {
 	}
 	return client.Delete(cred.Name)
 }
+
 func GenerateResourceRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*credhub.CredHub)
 	cred, err := client.GetById(d.Id())
@@ -154,6 +163,7 @@ func GenerateResourceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	return nil
 }
+
 func generateSignature(value interface{}) string {
 	h := sha512.New()
 	b, err := json.Marshal(value)
@@ -164,6 +174,7 @@ func generateSignature(value interface{}) string {
 	sumB := h.Sum(nil)
 	return fmt.Sprintf("%x", sumB)
 }
+
 func Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*credhub.CredHub)
 	var cred credentials.Credential
@@ -191,6 +202,7 @@ func SchemaSetToStringList(set *schema.Set) []string {
 	}
 	return finalList
 }
+
 func SchemaSetToIntList(set *schema.Set) []int {
 	data := set.List()
 	finalList := make([]int, len(data))
@@ -199,6 +211,7 @@ func SchemaSetToIntList(set *schema.Set) []int {
 	}
 	return finalList
 }
+
 func validateMapToString(mapValid map[string]bool) string {
 	asList := make([]string, len(mapValid))
 	i := 0

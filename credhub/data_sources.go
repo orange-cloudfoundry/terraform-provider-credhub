@@ -31,6 +31,7 @@ func (GenericDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}
 	d.Set("credential", credMap)
 	return nil
 }
+
 func (GenericDataSource) DataSourceSchema() map[string]*schema.Schema {
 	sch := dataSourceSchemaGeneric()
 	sch["credential"] = &schema.Schema{
@@ -53,6 +54,7 @@ func (ValueDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("value", data)
 	return nil
 }
+
 func (ValueDataSource) DataSourceSchema() map[string]*schema.Schema {
 	sch := dataSourceSchemaGeneric()
 	sch["value"] = &schema.Schema{
@@ -78,6 +80,7 @@ func (JsonDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("json", string(b))
 	return nil
 }
+
 func (JsonDataSource) DataSourceSchema() map[string]*schema.Schema {
 	sch := dataSourceSchemaGeneric()
 	sch["json"] = &schema.Schema{
@@ -99,6 +102,7 @@ func (PasswordDataSource) DataSourceRead(d *schema.ResourceData, meta interface{
 	d.Set("password", password)
 	return nil
 }
+
 func (PasswordDataSource) DataSourceSchema() map[string]*schema.Schema {
 	sch := dataSourceSchemaGeneric()
 	sch["password"] = &schema.Schema{
@@ -127,6 +131,7 @@ func (CertificateDataSource) DataSourceRead(d *schema.ResourceData, meta interfa
 	d.Set("private_key", data.PrivateKey)
 	return nil
 }
+
 func (CertificateDataSource) DataSourceSchema() map[string]*schema.Schema {
 	sch := dataSourceSchemaGeneric()
 	sch["ca"] = &schema.Schema{
@@ -164,6 +169,7 @@ func (RSADataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("private_key", data.PrivateKey)
 	return nil
 }
+
 func (RSADataSource) DataSourceSchema() map[string]*schema.Schema {
 	sch := dataSourceSchemaGeneric()
 	sch["public_key"] = &schema.Schema{
@@ -193,6 +199,7 @@ func (SSHDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("private_key", data.PrivateKey)
 	return nil
 }
+
 func (SSHDataSource) DataSourceSchema() map[string]*schema.Schema {
 	sch := dataSourceSchemaGeneric()
 	sch["public_key"] = &schema.Schema{
@@ -222,6 +229,7 @@ func (UserDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("password", data.Password)
 	return nil
 }
+
 func (UserDataSource) DataSourceSchema() map[string]*schema.Schema {
 	sch := dataSourceSchemaGeneric()
 	sch["username"] = &schema.Schema{

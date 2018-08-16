@@ -1,7 +1,6 @@
 package credhub
 
 import (
-	"fmt"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/generate"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -18,6 +17,7 @@ var validKeyUsage map[string]bool = map[string]bool{
 	"encipher_only":     true,
 	"decipher_only":     true,
 }
+
 var validExtendKeyUsage map[string]bool = map[string]bool{
 	"client_auth":      true,
 	"server_auth":      true,
@@ -54,14 +54,6 @@ func (GenerateCertificateResource) Create(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func (GenerateCertificateResource) validateFromMap(mapValid map[string]bool, keyType string) func(elem interface{}, index string) ([]string, []error) {
-	return func(elem interface{}, index string) ([]string, []error) {
-		if _, ok := mapValid[elem.(string)]; !ok {
-			return make([]string, 0), []error{fmt.Errorf("The provided %s is not supported. Valid values include %s.", keyType, validateMapToString(mapValid))}
-		}
-		return make([]string, 0), []error{}
-	}
-}
 func (r GenerateCertificateResource) Schema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"key_length": {
@@ -108,7 +100,7 @@ func (r GenerateCertificateResource) Schema() map[string]*schema.Schema {
 			Optional: true,
 			Elem: &schema.Schema{
 				Type:         schema.TypeString,
-				ValidateFunc: r.validateFromMap(validKeyUsage, "key usage"),
+				ValidateFunc: validateFromMap(validKeyUsage, "key usage"),
 			},
 			Set: schema.HashString,
 		},
@@ -117,7 +109,7 @@ func (r GenerateCertificateResource) Schema() map[string]*schema.Schema {
 			Optional: true,
 			Elem: &schema.Schema{
 				Type:         schema.TypeString,
-				ValidateFunc: r.validateFromMap(validExtendKeyUsage, "extended key usage"),
+				ValidateFunc: validateFromMap(validExtendKeyUsage, "extended key usage"),
 			},
 			Set: schema.HashString,
 		},
