@@ -57,6 +57,12 @@ func Provider() terraform.ResourceProvider {
 				Default:     false,
 				Description: "Set to true to skip verification of the API endpoint. Not recommended!",
 			},
+			"proxy": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CREDHUB_PROXY", ""),
+				Description: "Create given proxy before connecting to connect credhub server",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -109,6 +115,12 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	if caCert != "" {
 		options = append(options, credhub.CaCerts(caCert))
 	}
+
+	proxy := d.Get("proxy").(string)
+	if proxy != "" {
+		os.Setenv("CREDHUB_PROXY", proxy)
+	}
+
 	client, err := credhub.New(apiEndpoint, options...)
 	if err != nil {
 		return nil, err

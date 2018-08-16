@@ -13,9 +13,13 @@ type GenericDataSource struct {
 
 func (GenericDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	credMap := make(map[string]interface{})
-	dataSourceReadGeneric(d, meta, &credMap, func(credValue interface{}) {
+	err := dataSourceReadGeneric(d, meta, &credMap, func(credValue interface{}) {
 		credMap["value"] = fmt.Sprint(credValue)
 	})
+	if err != nil {
+		return err
+	}
+
 	for name, cred := range credMap {
 		credKind := reflect.TypeOf(cred).Kind()
 		if credKind == reflect.String {
@@ -48,9 +52,12 @@ type ValueDataSource struct {
 
 func (ValueDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := ""
-	dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) {
+	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) {
 		data = fmt.Sprint(credValue)
 	})
+	if err != nil {
+		return err
+	}
 	d.Set("value", data)
 	return nil
 }
@@ -70,9 +77,12 @@ type JsonDataSource struct {
 
 func (JsonDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := make(map[string]interface{})
-	dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) {
+	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) {
 		data["value"] = fmt.Sprint(credValue)
 	})
+	if err != nil {
+		return err
+	}
 	b, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
 		return err
@@ -96,9 +106,12 @@ type PasswordDataSource struct {
 
 func (PasswordDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	password := ""
-	dataSourceReadGeneric(d, meta, &password, func(credValue interface{}) {
+	err := dataSourceReadGeneric(d, meta, &password, func(credValue interface{}) {
 		password = fmt.Sprint(credValue)
 	})
+	if err != nil {
+		return err
+	}
 	d.Set("password", password)
 	return nil
 }
@@ -119,7 +132,7 @@ type CertificateDataSource struct {
 func (CertificateDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := values.Certificate{}
 	var err error
-	dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) {
+	err = dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) {
 		err = fmt.Errorf("This is not a certificate credential")
 	})
 	if err != nil {
