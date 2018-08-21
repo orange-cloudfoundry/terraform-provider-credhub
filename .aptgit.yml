@@ -12,7 +12,7 @@ asset_template: "{{.Name}}_{{.OS}}_{{.Arch}}"
 install_path: "{{.Home}}/.terraform.d/providers/{{.Name}}"
 install:
 - |
-  grep -Fxq "providers {" ~/.terraformrc &> /dev/null
+  grep -Fxq "providers {" {{.Home}}/.terraformrc &> /dev/null
   if [[ $? != 0 ]]; then
   cat <<EOF >> ~/.terraformrc
   providers {
@@ -20,12 +20,12 @@ install:
   }
   EOF
   else
-  grep -Fxq "{{.Metadata.shortname}}" ~/.terraformrc &> /dev/null
-  if [[ $? != 0 ]]; then
-  echo "{{.Name}}-{{.Version}} has been installed."
-  exit 0
-  fi
-  awk '/providers {/ { print; print "{{.Metadata.shortname}} = \"provider_path\""; next }1' ~/.terraformrc > /tmp/.terraformrc
-  mv /tmp/.terraformrc ~/
+    grep -Fxq "{{.Metadata.shortname}}" {{.Home}}/.terraformrc &> /dev/null
+    if [[ $? != 0 ]]; then
+      echo "{{.Name}}-{{.Version}} has been installed."
+      exit 0
+    fi
+    awk '/providers {/ { print; print "{{.Metadata.shortname}} = \"provider_path\""; next }1' {{.Home}}/.terraformrc > /tmp/.terraformrc
+    mv /tmp/.terraformrc {{.Home}}/
   fi
   echo "{{.Name}}-{{.Version}} has been installed."
