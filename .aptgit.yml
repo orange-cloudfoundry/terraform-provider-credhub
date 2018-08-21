@@ -25,7 +25,7 @@ install:
       echo "{{.Name}}-{{.Version}} has been installed."
       exit 0
     fi
-    awk '/providers {/ { print; print "{{.Metadata.shortname}} = \"provider_path\""; next }1' {{.Home}}/.terraformrc > /tmp/.terraformrc
+    awk '/providers {/ { print; print "{{.Metadata.shortname}} = \"{{.InstallPath}}\""; next }1' {{.Home}}/.terraformrc > /tmp/.terraformrc
     mv /tmp/.terraformrc {{.Home}}/.terraformrc
   fi
   echo "{{.Name}}-{{.Version}} has been installed and added to list."
