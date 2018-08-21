@@ -21,7 +21,7 @@ install:
   EOF
   else
     grep -Fxq "{{.Metadata.shortname}}" {{.Home}}/.terraformrc &> /dev/null
-    if [[ $? != 0 ]]; then
+    if [[ $? == 0 ]]; then
       echo "{{.Name}}-{{.Version}} has been installed."
       exit 0
     fi
