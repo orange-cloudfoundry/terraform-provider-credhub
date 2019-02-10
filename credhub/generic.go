@@ -1,11 +1,10 @@
 package credhub
 
 import (
+	"code.cloudfoundry.org/credhub-cli/credhub"
 	"encoding/json"
 	"fmt"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/hashicorp/terraform/helper/schema"
-	"net/http"
 	"strings"
 )
 
@@ -13,10 +12,6 @@ type CredData struct {
 	Value      string
 	Json       map[string]interface{}
 	Credential map[string]interface{}
-}
-type CredGeneric struct {
-	Id    string      `json:"id"`
-	Value interface{} `json:"value"`
 }
 
 func (d CredData) Check() error {
@@ -80,30 +75,11 @@ func (r GenericResource) Create(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	credType := strings.ToLower(d.Get("type").(string))
-	cred, err := r.setCredential(client, Name(d), credType, credData.CredValue())
+	cred, err := client.SetCredential(Name(d), credType, credData.CredValue())
 	d.SetId(cred.Id)
 	return nil
 }
-func (GenericResource) setCredential(ch *credhub.CredHub, name, credType string, value interface{}) (CredGeneric, error) {
-	requestBody := map[string]interface{}{}
-	requestBody["name"] = name
-	requestBody["type"] = credType
-	requestBody["value"] = value
-	requestBody["overwrite"] = true
-	resp, err := ch.Request(http.MethodPut, "/api/v1/data", nil, requestBody, true)
 
-	if err != nil {
-		return CredGeneric{}, err
-	}
-	cred := CredGeneric{}
-	defer resp.Body.Close()
-	dec := json.NewDecoder(resp.Body)
-	err = dec.Decode(&cred)
-	if err != nil {
-		return CredGeneric{}, err
-	}
-	return cred, nil
-}
 func (GenericResource) Schema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"type": {
@@ -125,6 +101,7 @@ func (GenericResource) Schema() map[string]*schema.Schema {
 		},
 	}
 }
+
 func validateKeyLength(elem interface{}, index string) ([]string, []error) {
 	length := elem.(int)
 	if length != 2048 && length != 3072 && length != 4096 {

@@ -1,13 +1,13 @@
 package credhub
 
 import (
+	"code.cloudfoundry.org/credhub-cli/credhub"
+	"code.cloudfoundry.org/credhub-cli/credhub/auth"
 	"fmt"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"strings"
 	"os"
+	"strings"
 )
 
 func Provider() terraform.ResourceProvider {
@@ -73,6 +73,7 @@ func Provider() terraform.ResourceProvider {
 			"credhub_ssh":         LoadGenerateResource(&GenerateSSHResource{}),
 			"credhub_user":        LoadGenerateResource(&GenerateUserResource{}),
 			"credhub_generic":     LoadGenerateResource(&GenericResource{}),
+			"credhub_permission":  resourcePermission(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{

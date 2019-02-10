@@ -6,5 +6,5 @@ echo -e "\nGenerating Binary for ${GOOS} on arch ${GOARCH}..."
 
 CURRENTDIR=`pwd`
 
-CGO_ENABLED=0 go build -o $CURRENTDIR/out/terraform-provider-credhub
+CGO_ENABLED=0 go build -ldflags="-s -w" -o $CURRENTDIR/out/terraform-provider-credhub
 echo -e "\nGenerating Binary finished."

@@ -1,10 +1,10 @@
 package credhub
 
 import (
+	"code.cloudfoundry.org/credhub-cli/credhub"
+	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
 	"encoding/json"
 	"fmt"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 

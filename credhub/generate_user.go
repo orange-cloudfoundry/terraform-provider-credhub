@@ -1,8 +1,8 @@
 package credhub
 
 import (
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/generate"
+	"code.cloudfoundry.org/credhub-cli/credhub"
+	"code.cloudfoundry.org/credhub-cli/credhub/credentials/generate"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 

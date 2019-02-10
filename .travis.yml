@@ -1,32 +1,29 @@
 language: go
 go:
-- 1.9
+  - "1.11"
 install:
-- go get github.com/hashicorp/terraform
-- go get github.com/onsi/ginkgo/ginkgo
-- go get github.com/onsi/gomega
+  - go get github.com/onsi/ginkgo/ginkgo
+  - go get github.com/onsi/gomega
+  - export GO111MODULE=on
 script:
-- |
-  if [ "$(go fmt ./...)"]; then
-    echo "You need to run `go fmt`"
-    exit 1
-  fi
-- go test `go list ./... | grep -v vendor` -v
+  - |
+    if [ "$(go fmt ./...)"]; then
+      echo "You need to run `go fmt`"
+      exit 1
+    fi
+  - go test `go list ./... | grep -v vendor` -v
 after_success:
-- cd $GOPATH/src/github.com/hashicorp/terraform
-- git checkout v0.11.7
-- cd $GOPATH/src/github.com/orange-cloudfoundry/terraform-provider-credhub
-- bin/build-all.sh
+  - bin/build-all.sh
 deploy:
   provider: releases
   api_key:
     secure: vAnQmOX1MZf8hGi2mjDGS+kAnsTVZXEKWSAnZJaLvJ2bmnGbtvSZJVgLw3ByaF/4DBixPjaztBoWOD7r9DQRUpwiEE2AOXNwZPmoytyZPCWBhTldkdot6RrjR0VMoslbC54+MInq//EV/8X2lM1CVrEzLvaQd1+NGd4M8xqjXaIrXMti8CWM6dANw+kUTEZbM9kaGxgm01WYrPvv8j9CJUszS88wQgpSN2ssNM3GVYBZHSlD1aZsJeidvjWCUpXcYMXVW8KZfWt5ccrqhj5f2ne381bBxL1tLLaeKu4yvNGSeDVj1JJcnXORV4klo3YWPqF03QXO7vyd57k7Lftin+o5Tk5cGAY+0muZAfzkPBz3ecomXv+cE0F3PwyEz1CApUsnp4ogTKqNcqI4wMXxPJv6uqdZoH9Ya7IsvVSwosz6vauX00iwNoh9O17yVNgRG6QfWuTZjvNMzSB2smS/u6zgvFEQITqOpn4YAFkGpSiSaMOJhpgTiIiS2KaCXx4Xgl2WAvI3/fJS/OxDWGlZtBZ0jMSCfWNqIISfnsprj7I3t/PXMVheOfG/UO5FtVDOcwD9ZawE9lZxHLv53Q6A0Ny2igYg+G1MmPmHjpM47iEEIV0uXrd7dsgLg9EaMI9bwzuPhJsogcdSYGrfU85mXLSBqFQkk6sjHQi3X6V8GjU=
   file:
-  - out/terraform-provider-credhub_darwin_amd64
-  - out/terraform-provider-credhub_linux_386
-  - out/terraform-provider-credhub_linux_amd64
-  - out/terraform-provider-credhub_windows_386.exe
-  - out/terraform-provider-credhub_windows_amd64.exe
+    - out/terraform-provider-credhub_darwin_amd64
+    - out/terraform-provider-credhub_linux_386
+    - out/terraform-provider-credhub_linux_amd64
+    - out/terraform-provider-credhub_windows_386.exe
+    - out/terraform-provider-credhub_windows_amd64.exe
   on:
     tags: true
     all_branches: true

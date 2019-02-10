@@ -75,6 +75,7 @@ provider "credhub" {
   - [Generate SSH](#generate-ssh)
   - [Generate user](#generate-user)
   - [Generic](#generic)
+  - [Permission](#permission)
 - [Datasources](#datasources)
   - [Value](#value)
   - [Json](#json)
@@ -271,6 +272,27 @@ resource "credhub_generic" "myjson" {
 - **data_value**: (*Optional*, Default: *NULL*) A simple value as credential parameter. This can't be use with `data_json` or `data_credential`
 - **data_credential**: (*Optional*, Default: *NULL*) A map with string values as credential parameter. This can't be use with `data_json` or `data_value`.
 - **data_json**: (*Optional*, Default: *NULL*) A json string as credential parameter. This can't be use with `data_credential` or `data_value`.
+
+---
+
+### Permission
+
+```hcl
+resource "credhub_permission" "myuser_perm_mypath" {
+  path       = "/a/path/*"
+  actor      = "uaa-user:dc912b22-caeb-4780-a6d5-aa5843f81868"
+  operations = ["read", "write", "delete"]
+}
+```
+
+- **path**: (**Required**) A path where you would like to add a permission to for an actor
+- **actor**: (**Required**) An actor that receives permission at the specified path 
+(See authentication-specific identities [explained here](https://github.com/cloudfoundry-incubator/credhub/blob/master/docs/authentication-identities.md))
+- **operations**: (**Required**) List of operations given to actor for specified path 
+(supported operations: `read`, `write`, `delete`, `read_acl`, `write_acl`)
+
+**Note**: For actor as type `uaa-user`, find id can be difficult but hopefully you can use id provided with 
+[with datasource terraform provider uaa](https://github.com/orange-cloudfoundry/terraform-provider-uaa/blob/master/website/docs/d/user.html.markdown)
 
 ---
 
