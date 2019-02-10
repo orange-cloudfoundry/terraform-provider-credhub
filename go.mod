@@ -5,7 +5,6 @@ require (
 	github.com/apparentlymart/go-cidr v1.0.0 // indirect
 	github.com/azer/snakecase v0.0.0-20161028114325-c818dddafb5c
 	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/cloudfoundry-incubator/credhub-cli v0.0.0-20180423160248-fbeb23df0fb0
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.1.0 // indirect
 	github.com/hashicorp/go-getter v1.0.3 // indirect

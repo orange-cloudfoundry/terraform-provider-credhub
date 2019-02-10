@@ -1,8 +1,8 @@
 package main
 
 import (
+	"code.cloudfoundry.org/credhub-cli/credhub/credentials/generate"
 	"github.com/azer/snakecase"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/generate"
 	"os"
 	"reflect"
 	"strings"
