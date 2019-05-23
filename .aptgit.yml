@@ -11,4 +11,4 @@ metadata:
 asset_template: "{{.Name}}_{{.OS}}_{{.Arch}}"
 install_path: "{{.Home}}/.terraform.d/providers/{{.Name}}"
 install:
-- path: bin/aptgit-install.sh
+  path: bin/aptgit-install.sh
