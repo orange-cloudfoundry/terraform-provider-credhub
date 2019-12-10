@@ -1,0 +1,40 @@
+# This is an example goreleaser.yaml file with some sane defaults.
+# Make sure to check the documentation at http://goreleaser.com
+before:
+    hooks:
+      # you may remove this if you don't use vgo
+      - go mod download
+      # you may remove this if you don't need go generate
+      - go generate ./...
+builds:
+- goos:
+    - linux
+    - darwin
+    - windows
+  goarch:
+    - amd64
+  env:
+    - CGO_ENABLED=0
+  id: provider
+  main: ./
+  binary: terraform-provider-credhub
+archives:
+- id: zip-archive-provider
+  builds: [provider]
+  name_template: "{{ .Binary }}_{{ .Os }}_{{ .Arch }}"
+  format: zip
+- id: binary-archive-provider
+  builds: [provider]
+  name_template: "{{ .Binary }}_{{ .Os }}_{{ .Arch }}"
+  format: binary
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha1
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
