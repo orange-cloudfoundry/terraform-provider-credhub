@@ -83,7 +83,7 @@ func resourcePermissionUpdate(d *schema.ResourceData, meta interface{}) (err err
 func resourcePermissionRead(d *schema.ResourceData, meta interface{}) (err error) {
 	client := meta.(*credhub.CredHub)
 
-	permission, err := client.GetPermission(d.Id())
+	permission, err := client.GetPermissionByUUID(d.Id())
 	if err != nil {
 		return err
 	}
