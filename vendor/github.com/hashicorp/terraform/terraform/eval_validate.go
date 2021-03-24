@@ -93,8 +93,10 @@ func (n *EvalValidateProvisioner) Validate(ctx EvalContext) error {
 		return fmt.Errorf("EvaluateBlock returned nil value")
 	}
 
+	// Use unmarked value for validate request
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
 	req := provisioners.ValidateProvisionerConfigRequest{
-		Config: configVal,
+		Config: unmarkedConfigVal,
 	}
 
 	resp := provisioner.ValidateProvisionerConfig(req)
@@ -208,8 +210,11 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Type:     cty.String,
 			Optional: true,
 		},
-
 		// For type=ssh only (enforced in ssh communicator)
+		"target_platform": {
+			Type:     cty.String,
+			Optional: true,
+		},
 		"private_key": {
 			Type:     cty.String,
 			Optional: true,
