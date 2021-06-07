@@ -4,7 +4,7 @@ import (
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"reflect"
 )
 
@@ -13,8 +13,9 @@ type GenericDataSource struct {
 
 func (GenericDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	credMap := make(map[string]interface{})
-	err := dataSourceReadGeneric(d, meta, &credMap, func(credValue interface{}) {
+	err := dataSourceReadGeneric(d, meta, &credMap, func(credValue interface{}) error {
 		credMap["value"] = fmt.Sprint(credValue)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -52,8 +53,9 @@ type ValueDataSource struct {
 
 func (ValueDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := ""
-	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) {
+	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) error {
 		data = fmt.Sprint(credValue)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -77,8 +79,9 @@ type JsonDataSource struct {
 
 func (JsonDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := make(map[string]interface{})
-	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) {
+	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) error {
 		data["value"] = fmt.Sprint(credValue)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -106,8 +109,9 @@ type PasswordDataSource struct {
 
 func (PasswordDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	password := ""
-	err := dataSourceReadGeneric(d, meta, &password, func(credValue interface{}) {
+	err := dataSourceReadGeneric(d, meta, &password, func(credValue interface{}) error {
 		password = fmt.Sprint(credValue)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -131,9 +135,8 @@ type CertificateDataSource struct {
 
 func (CertificateDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := values.Certificate{}
-	var err error
-	err = dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) {
-		err = fmt.Errorf("This is not a certificate credential")
+	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) error {
+		return fmt.Errorf("This is not a certificate credential")
 	})
 	if err != nil {
 		return err
@@ -171,9 +174,8 @@ type RSADataSource struct {
 
 func (RSADataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := values.RSA{}
-	var err error
-	dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) {
-		err = fmt.Errorf("This is not a RSA credential")
+	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) error {
+		return fmt.Errorf("This is not a RSA credential")
 	})
 	if err != nil {
 		return err
@@ -201,9 +203,8 @@ type SSHDataSource struct {
 
 func (SSHDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := values.SSH{}
-	var err error
-	dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) {
-		err = fmt.Errorf("This is not a SSH credential")
+	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) error {
+		return fmt.Errorf("This is not a SSH credential")
 	})
 	if err != nil {
 		return err
@@ -231,9 +232,8 @@ type UserDataSource struct {
 
 func (UserDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := values.User{}
-	var err error
-	dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) {
-		err = fmt.Errorf("This is not an User credential")
+	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) error {
+		return fmt.Errorf("This is not an User credential")
 	})
 	if err != nil {
 		return err

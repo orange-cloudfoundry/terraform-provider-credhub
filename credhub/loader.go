@@ -6,7 +6,7 @@ import (
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"strconv"
 	"strings"
 	"time"
@@ -170,7 +170,7 @@ func generateSignature(value interface{}) string {
 	if err != nil {
 		b = []byte(fmt.Sprint(value))
 	}
-	h.Write(b)
+	h.Write(b) //nolint
 	sumB := h.Sum(nil)
 	return fmt.Sprintf("%x", sumB)
 }
@@ -215,7 +215,7 @@ func SchemaSetToIntList(set *schema.Set) []int {
 func validateMapToString(mapValid map[string]bool) string {
 	asList := make([]string, len(mapValid))
 	i := 0
-	for name, _ := range mapValid {
+	for name := range mapValid {
 		asList[i] = name
 		i++
 	}

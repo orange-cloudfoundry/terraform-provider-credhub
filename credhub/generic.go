@@ -4,7 +4,7 @@ import (
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"strings"
 )
 
@@ -76,6 +76,9 @@ func (r GenericResource) Create(d *schema.ResourceData, meta interface{}) error 
 
 	credType := strings.ToLower(d.Get("type").(string))
 	cred, err := client.SetCredential(Name(d), credType, credData.CredValue())
+	if err != nil {
+		return err
+	}
 	d.SetId(cred.Id)
 	return nil
 }

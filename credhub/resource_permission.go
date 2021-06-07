@@ -2,8 +2,8 @@ package credhub
 
 import (
 	"code.cloudfoundry.org/credhub-cli/credhub"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/orange-cloudfoundry/terraform-provider-credhub/credhub/extend"
 )
 

@@ -59,19 +59,21 @@ func (p *Permission) UpdatePermission(uuid string, path string, actor string, op
 
 	if isOlderVersion {
 		resp, err = p.updateV1Permission(uuid, path, []permissions.V1_Permission{{Actor: actor, Operations: ops}})
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
 	} else {
 		resp, err = p.updateV2Permission(uuid, path, actor, ops)
-	}
-
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
 	}
 
 	if isOlderVersion {
 		return nil, nil
 	}
-
-	defer resp.Body.Close()
 	defer io.Copy(ioutil.Discard, resp.Body)
 	var response permissions.Permission
 
@@ -86,9 +88,9 @@ func (p *Permission) DeletePermission(uuid string) error {
 	ch := p.client
 	resp, err := ch.Request(http.MethodDelete, fmt.Sprintf("/api/v2/permissions/%s", uuid), nil, nil, true)
 
-	if err == nil {
-		defer resp.Body.Close()
+	if err != nil {
+		return err
 	}
-
-	return err
+	defer resp.Body.Close()
+	return nil
 }

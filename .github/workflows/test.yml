@@ -1,0 +1,44 @@
+name: test
+
+on: push
+
+jobs:
+  lint-n-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: set up go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+
+      - name: cache go modules
+        uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: get deps
+        run: |
+          go mod tidy
+          if [ ! -z "$(git status --porcelain)" ]; then
+            echo "::error::modules are not tidy, please run go mod tidy"
+            exit 1
+          fi
+      - name: lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
+          version: v1.32
+
+      - name: tests
+        run: |
+          go test -v ./...
+
+      - name: gitleaks
+        uses: zricethezav/gitleaks-action@master
+        with:
+          config-path: .gitleaks.toml

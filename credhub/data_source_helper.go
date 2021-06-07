@@ -5,10 +5,10 @@ import (
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func dataSourceReadGeneric(d *schema.ResourceData, meta, v interface{}, onMarshalErr func(interface{})) error {
+func dataSourceReadGeneric(d *schema.ResourceData, meta, v interface{}, onMarshalErr func(interface{}) error) error {
 	client := meta.(*credhub.CredHub)
 	if d.Get("cred_id").(string) == "" && d.Get("name").(string) == "" {
 		return fmt.Errorf("Id or name must be set")
@@ -33,7 +33,7 @@ func dataSourceReadGeneric(d *schema.ResourceData, meta, v interface{}, onMarsha
 	}
 	err = json.Unmarshal(b, v)
 	if err != nil {
-		onMarshalErr(cred.Value)
+		return onMarshalErr(cred.Value)
 	}
 	return nil
 }

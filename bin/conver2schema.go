@@ -66,10 +66,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	tpl.ExecuteTemplate(os.Stdout, "toschema", struct {
+	err = tpl.ExecuteTemplate(os.Stdout, "toschema", struct {
 		Name string
 		Tags []Tag
 	}{t.Name(), tags})
+	if err != nil {
+		panic(err)
+	}
 }
 func parseInTag(tag, fieldName string) Tag {
 	if tag == "" {
