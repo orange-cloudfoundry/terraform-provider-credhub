@@ -1,50 +1,48 @@
-project_name: terraform-provider-credhub
-
+before:
+  hooks:
+    - go mod download
+    - go mod tidy
 builds:
-  -
-    &template
-    id: binary
-    binary: terraform-provider-credhub
-    env:
+  - env:
+      # goreleaser does not work with CGO, it could also complicate
+      # usage by users in CI/CD systems like Terraform Cloud where
+      # they are unable to install libraries.
       - CGO_ENABLED=0
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - -trimpath
     ldflags:
-      - -s
-      - -w
-      - -X github.com/prometheus/common/version.Version={{.Version}}
-      - -X github.com/prometheus/common/version.Revision={{.FullCommit}}
-      - -X github.com/prometheus/common/version.Branch={{.Branch}}
-      - -X github.com/prometheus/common/version.BuildUser={{.Env.USER}}
-      - -X github.com/prometheus/common/version.BuildDate={{.Date}}
+      - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}'
     goos:
+      - freebsd
+      - openbsd
+      - windows
       - linux
       - darwin
-      - windows
     goarch:
       - amd64
-
+      - '386'
+      - arm
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: '386'
+      - goos: openbsd
+        goarch: arm
+      - goos: openbsd
+        goarch: arm64
+    binary: '{{ .ProjectName }}_v{{ .Version }}'
 archives:
-  - id: archives
-    builds:
-      - binary
-    format: "tar.gz"
+  - format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
-    wrap_in_directory: true
-    files:
-      - LICENSE*
-      - README*
-      - CHANGELOG*
-      - docs/*
-      - assets/*
-      - static/*
-      - templates/*
-
 checksum:
-  name_template: checksums.txt
+  name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
-
-release:
-  github:
-    owner: orange-cloudfoundry
-    name: terraform-provider-credhub
-  prerelease: auto
-  name_template: '{{.Tag}}'
+signs:
+  - artifacts: checksum
+    args: [ "--batch", "-u", "{{ .Env.GPG_FINGERPRINT }}", "--output", "${signature}", "--detach-sign", "${artifact}" ]
+  #release:
+  # If you want to manually examine the release before its live, uncomment this line:
+#  draft: true
+changelog:
+  skip: true
