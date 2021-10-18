@@ -1,18 +1,23 @@
-before:
-  hooks:
-    - go mod download
-    - go mod tidy
+project_name:  terraform-provider-credhub
+
 builds:
-  - env:
-      # goreleaser does not work with CGO, it could also complicate
-      # usage by users in CI/CD systems like Terraform Cloud where
-      # they are unable to install libraries.
+  - id: binary
+    binary:  terraform-provider-credhub
+    dir: .
+    env:
       - CGO_ENABLED=0
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
       - -trimpath
     ldflags:
-      - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}'
+      - -s
+      - -w
+      - -X github.com/prometheus/common/version.Version={{.Version}}
+      - -X github.com/prometheus/common/version.Revision={{.FullCommit}}
+      - -X github.com/prometheus/common/version.Branch={{.Branch}}
+      - -X github.com/prometheus/common/version.BuildUser={{.Env.USER}}
+      - -X github.com/prometheus/common/version.BuildDate={{.Date}}
+      -
     goos:
       - freebsd
       - openbsd
@@ -33,16 +38,26 @@ builds:
         goarch: arm64
     binary: '{{ .ProjectName }}_v{{ .Version }}'
 archives:
-  - format: zip
+  - id: archives
+    builds:
+      - binary
+    format: "tar.gz"
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    wrap_in_directory: true
+  - id: archives-zip
+    builds:
+      - binary
+    format: "zip"
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    wrap_in_directory: true
+
 checksum:
-  name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
+  name_template: checksums.txt
   algorithm: sha256
-signs:
-  - artifacts: checksum
-    args: [ "--batch", "-u", "{{ .Env.GPG_FINGERPRINT }}", "--output", "${signature}", "--detach-sign", "${artifact}" ]
-  #release:
-  # If you want to manually examine the release before its live, uncomment this line:
-#  draft: true
-changelog:
-  skip: true
+
+release:
+  github:
+    owner: orange-cloudfoundry
+    name:  terraform-provider-credhub
+  prerelease: auto
+  name_template: '{{.Tag}}'
