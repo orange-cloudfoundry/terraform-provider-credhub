@@ -49,6 +49,16 @@ jobs:
       - name: tests
         run: |
           go test -v ./...
+          
+      - name: Import GPG key
+        id: import_gpg
+        # TODO: move this to HashiCorp namespace or find alternative that is just simple gpg commands
+        # see https://github.com/hashicorp/terraform-provider-scaffolding/issues/22
+        uses: paultyng/ghaction-import-gpg@v2.1.0
+        env:
+          # These secrets will need to be configured for the repository:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.PASSPHRASE }}
 
       - name: run goreleaser
         uses: goreleaser/goreleaser-action@v2
@@ -59,3 +69,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USER: github-actions
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
