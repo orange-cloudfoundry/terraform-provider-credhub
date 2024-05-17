@@ -28,7 +28,7 @@ resource "credhub_password" "mypassword" {
 The following arguments are supported:
 
 - `name` - (Required) Name of your credential
-- `rotate_interval` - (Optional, Default: *Null*) If defined provider will mark the resource as a dirty to regenerate a new password, this is an helper to do password rotation. This actually imply that a cron will recall terraform apply/plan.
+- `rotate_interval` - (Optional, Default: *Null*) If defined provider will mark the resource as a dirty to regenerate a new password, this is a helper to do password rotation. This actually imply that a cron will recall terraform apply/plan.
 - `length` - (Optional, Default: *Default value from credhub*) Length of generated credential value.
 - `exclude_upper` - (Optional, Default: *Default value from credhub*) Exclude upper alpha characters from generated credential value.
 - `exclude_lower` - (Optional, Default: *Default value from credhub*) Exclude lower alpha characters from generated credential value.

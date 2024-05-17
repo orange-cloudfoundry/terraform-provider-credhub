@@ -16,7 +16,7 @@ type CredData struct {
 
 func (d CredData) Check() error {
 	if d.Value == "" && len(d.Json) == 0 && len(d.Credential) == 0 {
-		return fmt.Errorf("data_value, data_json or data_credential has to been set.")
+		return fmt.Errorf("data_value, data_json or data_credential has to been set")
 	}
 	howMany := 0
 	if d.Value != "" {
@@ -29,7 +29,7 @@ func (d CredData) Check() error {
 		howMany++
 	}
 	if howMany > 1 {
-		return fmt.Errorf("Only one of data_value, data_json or data_credential can be set.")
+		return fmt.Errorf("only one of data_value, data_json or data_credential can be set")
 	}
 	return nil
 }
@@ -108,7 +108,7 @@ func (GenericResource) Schema() map[string]*schema.Schema {
 func validateKeyLength(elem interface{}, index string) ([]string, []error) {
 	length := elem.(int)
 	if length != 2048 && length != 3072 && length != 4096 {
-		return make([]string, 0), []error{fmt.Errorf("The provided key length is not supported. Valid values include '2048', '3072' and '4096'.")}
+		return make([]string, 0), []error{fmt.Errorf("the provided key length is not supported, valid values include: '2048', '3072' and '4096'")}
 	}
 	return make([]string, 0), []error{}
 }

@@ -21,7 +21,7 @@ data "credhub_user" "my_data" {
 The following arguments are supported:
 
 - `name` - (Required if cred_id empty) Name of your credential.
-- `cred_id`: (Required if name empty) Id of your credential.
+- `cred_id`: (Required if name empty) Your credential ID.
 
 ## Attributes Reference
 
