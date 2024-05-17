@@ -73,6 +73,7 @@ func (p *Permission) UpdatePermission(uuid string, path string, actor string, op
 	if isOlderVersion {
 		return nil, nil
 	}
+	//nolint:errcheck
 	defer io.Copy(io.Discard, resp.Body)
 	var response permissions.Permission
 
@@ -90,6 +91,5 @@ func (p *Permission) DeletePermission(uuid string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	return nil
+	return resp.Body.Close()
 }

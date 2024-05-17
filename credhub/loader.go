@@ -92,9 +92,8 @@ func Name(d *schema.ResourceData) string {
 	return d.Get("name").(string)
 }
 
-func SetName(d *schema.ResourceData, value string) {
-
-	d.Set("name", value)
+func SetName(d *schema.ResourceData, value string) error {
+	return d.Set("name", value)
 }
 
 func transformCredhubError(err error) error {
@@ -116,8 +115,12 @@ func CreateCreateFunc(create func(d *schema.ResourceData, meta interface{}) erro
 		if err != nil {
 			return transformCredhubError(err)
 		}
-		d.Set("signature", generateSignature(cred.Value))
-		d.Set("last_generation", fmt.Sprintf("%d", time.Now().Unix()))
+		if err = d.Set("signature", generateSignature(cred.Value)); err != nil {
+			return err
+		}
+		if err = d.Set("last_generation", fmt.Sprintf("%d", time.Now().Unix())); err != nil {
+			return err
+		}
 		return nil
 	}
 }
@@ -140,12 +143,18 @@ func GenerateResourceRead(d *schema.ResourceData, meta interface{}) error {
 	if !strings.HasPrefix(d.Get("name").(string), "/") {
 		cred.Name = strings.TrimPrefix(cred.Name, "/")
 	}
-	SetName(d, cred.Name)
+	if err = SetName(d, cred.Name); err != nil {
+		return err
+	}
 	markerChanged := !d.Get("changed").(bool)
 	signature := generateSignature(cred.Value)
 	if d.Get("signature").(string) != signature {
-		d.Set("signature", signature)
-		d.Set("changed", markerChanged)
+		if err = d.Set("signature", signature); err != nil {
+			return err
+		}
+		if err = d.Set("changed", markerChanged); err != nil {
+			return err
+		}
 	}
 	if d.Get("rotate_interval").(string) == "" {
 		return nil
@@ -160,8 +169,12 @@ func GenerateResourceRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	if tm.Add(time.Duration(expireDuration)).Before(time.Now()) {
-		d.Set("last_generation", fmt.Sprintf("%d", time.Now().Unix()))
-		d.Set("changed", markerChanged)
+		if err = d.Set("last_generation", fmt.Sprintf("%d", time.Now().Unix())); err != nil {
+			return err
+		}
+		if err = d.Set("changed", markerChanged); err != nil {
+			return err
+		}
 	}
 	return nil
 }

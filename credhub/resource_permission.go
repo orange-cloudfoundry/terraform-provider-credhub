@@ -88,9 +88,15 @@ func resourcePermissionRead(d *schema.ResourceData, meta interface{}) (err error
 		return err
 	}
 
-	d.Set("path", permission.Path)
-	d.Set("actor", permission.Actor)
-	d.Set("operations", permission.Operations)
+	if err = d.Set("path", permission.Path); err != nil {
+		return err
+	}
+	if err = d.Set("actor", permission.Actor); err != nil {
+		return err
+	}
+	if err = d.Set("operations", permission.Operations); err != nil {
+		return err
+	}
 
 	return nil
 }

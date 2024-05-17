@@ -24,8 +24,12 @@ func dataSourceReadGeneric(d *schema.ResourceData, meta, v interface{}, onMarsha
 		return err
 	}
 	d.SetId(cred.Id)
-	d.Set("type", cred.Type)
-	d.Set("name", cred.Name)
+	if err = d.Set("type", cred.Type); err != nil {
+		return err
+	}
+	if err = d.Set("name", cred.Name); err != nil {
+		return err
+	}
 
 	b, err := json.Marshal(cred.Value)
 	if err != nil {
