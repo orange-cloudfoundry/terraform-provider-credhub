@@ -11,7 +11,7 @@ import (
 func dataSourceReadGeneric(d *schema.ResourceData, meta, v interface{}, onMarshalErr func(interface{}) error) error {
 	client := meta.(*credhub.CredHub)
 	if d.Get("cred_id").(string) == "" && d.Get("name").(string) == "" {
-		return fmt.Errorf("Id or name must be set")
+		return fmt.Errorf("ID or name must be set")
 	}
 	var cred credentials.Credential
 	var err error

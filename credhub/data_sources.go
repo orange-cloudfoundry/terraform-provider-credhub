@@ -136,7 +136,7 @@ type CertificateDataSource struct {
 func (CertificateDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := values.Certificate{}
 	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) error {
-		return fmt.Errorf("This is not a certificate credential")
+		return fmt.Errorf("this is not a certificate credential")
 	})
 	if err != nil {
 		return err
@@ -175,7 +175,7 @@ type RSADataSource struct {
 func (RSADataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := values.RSA{}
 	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) error {
-		return fmt.Errorf("This is not a RSA credential")
+		return fmt.Errorf("this is not a RSA credential")
 	})
 	if err != nil {
 		return err
@@ -204,7 +204,7 @@ type SSHDataSource struct {
 func (SSHDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := values.SSH{}
 	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) error {
-		return fmt.Errorf("This is not a SSH credential")
+		return fmt.Errorf("this is not a SSH credential")
 	})
 	if err != nil {
 		return err
@@ -233,7 +233,7 @@ type UserDataSource struct {
 func (UserDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	data := values.User{}
 	err := dataSourceReadGeneric(d, meta, &data, func(credValue interface{}) error {
-		return fmt.Errorf("This is not an User credential")
+		return fmt.Errorf("this is not an User credential")
 	})
 	if err != nil {
 		return err

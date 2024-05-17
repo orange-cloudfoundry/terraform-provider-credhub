@@ -20,15 +20,15 @@ func resourcePermission() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"path": &schema.Schema{
+			"path": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"actor": &schema.Schema{
+			"actor": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"operations": &schema.Schema{
+			"operations": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Schema{

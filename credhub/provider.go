@@ -101,7 +101,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	clientId := d.Get("client_id").(string)
 	clientSecret := d.Get("client_secret").(string)
 	if (username == "" || password == "") && (clientId == "" || clientSecret == "") {
-		return nil, fmt.Errorf("One of pair Username/Password or Client_id/client_secret must be set.")
+		return nil, fmt.Errorf("one of pair username/password or client_id/client_secret must be set")
 	}
 
 	options := make([]credhub.Option, 0)

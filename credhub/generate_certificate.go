@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-var validKeyUsage map[string]bool = map[string]bool{
+var validKeyUsage = map[string]bool{
 	"digital_signature": true,
 	"non_repudiation":   true,
 	"key_encipherment":  true,
@@ -18,7 +18,7 @@ var validKeyUsage map[string]bool = map[string]bool{
 	"decipher_only":     true,
 }
 
-var validExtendKeyUsage map[string]bool = map[string]bool{
+var validExtendKeyUsage = map[string]bool{
 	"client_auth":      true,
 	"server_auth":      true,
 	"code_signing":     true,

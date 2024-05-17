@@ -1,4 +1,4 @@
-// credit to https://github.com/prometheus/prometheus
+// Package credhub credit to https://github.com/prometheus/prometheus
 package credhub
 
 import (
@@ -15,7 +15,7 @@ type Duration time.Duration
 
 var durationRE = regexp.MustCompile("^([0-9]+)(y|w|d|h|m|s|ms)$")
 
-// StringToDuration parses a string into a time.Duration, assuming that a year
+// ParseDuration Parses a string into a time.Duration, assuming that a year
 // always has 365d, a week always has 7d, and a day always has 24h.
 func ParseDuration(durationStr string) (Duration, error) {
 	matches := durationRE.FindStringSubmatch(durationStr)

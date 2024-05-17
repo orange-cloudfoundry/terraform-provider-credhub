@@ -21,7 +21,7 @@ func (GenerateRSAResource) Create(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-// '2048', '3072' and '4096'
+// Schema '2048', '3072' and '4096'
 func (GenerateRSAResource) Schema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"key_length": {

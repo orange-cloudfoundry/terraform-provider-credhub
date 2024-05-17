@@ -6,7 +6,7 @@ page_title: "Credhub: Generic"
 
 Generate a generic credentials based on arguments.
 
-This generic resource has been made to prevent any future update on credhub which is could not yet implemented in this provider.
+This generic resource has been made to prevent any future update on credhub which is not yet implemented in this provider.
 
 We don't recommend to use it if you can't secure your configuration, you will need to set credentials directly to your configuration.
 
@@ -55,9 +55,9 @@ The following arguments are supported:
 
 - `name` - (Required) Name of your credential
 - `type` - (Required) Type of your credential (see: http://credhub-api.cfapps.io/#set-credentials )
-- `data_value` - (Optional, Default: *NULL*) A simple value as credential parameter. This can't be use with `data_json` or `data_credential`
-- `data_credential` - (Optional, Default: *NULL*) A map with string values as credential parameter. This can't be use with `data_json` or `data_value`.
-- `data_json` - (Optional, Default: *NULL*) A json string as credential parameter. This can't be use with `data_credential` or `data_value`.
+- `data_value` - (Optional, Default: *NULL*) A simple value as credential parameter. This can't be used with `data_json` or `data_credential`
+- `data_credential` - (Optional, Default: *NULL*) A map with string values as credential parameter. This can't be used with `data_json` or `data_value`.
+- `data_json` - (Optional, Default: *NULL*) A json string as credential parameter. This can't be used with `data_credential` or `data_value`.
 
 ## Attributes Reference
 
