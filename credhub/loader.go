@@ -5,6 +5,7 @@ import (
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
 	"crypto/sha512"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"strconv"
@@ -97,7 +98,8 @@ func SetName(d *schema.ResourceData, value string) {
 }
 
 func transformCredhubError(err error) error {
-	if errResp, ok := err.(*credhub.Error); ok {
+	var errResp *credhub.Error
+	if errors.As(err, &errResp) {
 		return fmt.Errorf("%s: %s", errResp.Name, errResp.Description)
 	}
 	return err
