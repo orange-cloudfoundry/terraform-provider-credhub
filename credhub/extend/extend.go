@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -74,7 +73,7 @@ func (p *Permission) UpdatePermission(uuid string, path string, actor string, op
 	if isOlderVersion {
 		return nil, nil
 	}
-	defer io.Copy(ioutil.Discard, resp.Body)
+	defer io.Copy(io.Discard, resp.Body)
 	var response permissions.Permission
 
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
