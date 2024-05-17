@@ -3,6 +3,8 @@ package main
 import (
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials/generate"
 	"github.com/azer/snakecase"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"os"
 	"reflect"
 	"strings"
@@ -56,7 +58,7 @@ func main() {
 			typeName = tField.Type.Elem().Name()
 			tag.IsArray = true
 		}
-		tag.Type = strings.Title(typeName)
+		tag.Type = cases.Title(language.AmericanEnglish).String(typeName)
 		tag.TypeLower = typeName
 		tags = append(tags, tag)
 
