@@ -11,7 +11,7 @@ require (
 	code.cloudfoundry.org/credhub-cli v0.0.0-20241217031024-61a24d347517
 	github.com/azer/snakecase v1.0.0
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
-	golang.org/x/text v0.21.0
+	golang.org/x/text v0.23.0
 )
 
 require (
@@ -104,7 +104,7 @@ require (
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	golang.org/x/tools v0.28.0 // indirect
