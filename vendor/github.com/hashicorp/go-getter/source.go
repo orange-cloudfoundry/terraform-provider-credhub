@@ -58,9 +58,7 @@ func SourceDirSubdir(src string) (string, string) {
 //
 // The returned path is the full absolute path.
 func SubdirGlob(dst, subDir string) (string, error) {
-	pattern := filepath.Join(dst, subDir)
-
-	matches, err := filepath.Glob(pattern)
+	matches, err := filepath.Glob(filepath.Join(dst, subDir))
 	if err != nil {
 		return "", err
 	}

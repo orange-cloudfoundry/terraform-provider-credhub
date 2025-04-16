@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package hclsyntax
 
 import (
@@ -9,7 +6,7 @@ import (
 	"strconv"
 	"unicode/utf8"
 
-	"github.com/apparentlymart/go-textseg/v15/textseg"
+	"github.com/apparentlymart/go-textseg/v12/textseg"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -79,37 +76,14 @@ Token:
 		default:
 			bad := p.Read()
 			if !p.recovery {
-				switch bad.Type {
-				case TokenOQuote:
+				if bad.Type == TokenOQuote {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid argument name",
 						Detail:   "Argument names must not be quoted.",
 						Subject:  &bad.Range,
 					})
-				case TokenEOF:
-					switch end {
-					case TokenCBrace:
-						// If we're looking for a closing brace then we're parsing a block
-						diags = append(diags, &hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Unclosed configuration block",
-							Detail:   "There is no closing brace for this block before the end of the file. This may be caused by incorrect brace nesting elsewhere in this file.",
-							Subject:  &startRange,
-						})
-					default:
-						// The only other "end" should itself be TokenEOF (for
-						// the top-level body) and so we shouldn't get here,
-						// but we'll return a generic error message anyway to
-						// be resilient.
-						diags = append(diags, &hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Unclosed configuration body",
-							Detail:   "Found end of file before the end of this configuration body.",
-							Subject:  &startRange,
-						})
-					}
-				default:
+				} else {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Argument or block definition required",
@@ -170,6 +144,8 @@ func (p *parser) ParseBodyItem() (Node, hcl.Diagnostics) {
 			},
 		}
 	}
+
+	return nil, nil
 }
 
 // parseSingleAttrBody is a weird variant of ParseBody that deals with the
@@ -412,23 +388,12 @@ Token:
 			// user intent for this one, we'll skip it if we're already in
 			// recovery mode.
 			if !p.recovery {
-				switch p.Peek().Type {
-				case TokenEOF:
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Unclosed configuration block",
-						Detail:   "There is no closing brace for this block before the end of the file. This may be caused by incorrect brace nesting elsewhere in this file.",
-						Subject:  oBrace.Range.Ptr(),
-						Context:  hcl.RangeBetween(ident.Range, oBrace.Range).Ptr(),
-					})
-				default:
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid single-argument block definition",
-						Detail:   "A single-line block definition must end with a closing brace immediately after its single argument definition.",
-						Subject:  p.Peek().Range.Ptr(),
-					})
-				}
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid single-argument block definition",
+					Detail:   "A single-line block definition must end with a closing brace immediately after its single argument definition.",
+					Subject:  p.Peek().Range.Ptr(),
+				})
 			}
 			p.recover(TokenCBrace)
 		}
@@ -811,16 +776,9 @@ Traversal:
 				// will probably be misparsed until we hit something that
 				// allows us to re-sync.
 				//
-				// Returning an ExprSyntaxError allows us to pass more information
-				// about the invalid expression to the caller, which can then
-				// use this for example for completions that happen after typing
-				// a dot in an editor.
-				ret = &ExprSyntaxError{
-					Placeholder: cty.DynamicVal,
-					ParseDiags:  diags,
-					SrcRange:    hcl.RangeBetween(from.Range(), dot.Range),
-				}
-
+				// We will probably need to do something better here eventually
+				// in order to support autocomplete triggered by typing a
+				// period.
 				p.setRecovery()
 			}
 
@@ -1006,7 +964,7 @@ func (p *parser) parseExpressionTerm() (Expression, hcl.Diagnostics) {
 	case TokenIdent:
 		tok := p.Read() // eat identifier token
 
-		if p.Peek().Type == TokenOParen || p.Peek().Type == TokenDoubleColon {
+		if p.Peek().Type == TokenOParen {
 			return p.finishParsingFunctionCall(tok)
 		}
 
@@ -1101,22 +1059,12 @@ func (p *parser) parseExpressionTerm() (Expression, hcl.Diagnostics) {
 	default:
 		var diags hcl.Diagnostics
 		if !p.recovery {
-			switch start.Type {
-			case TokenEOF:
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Missing expression",
-					Detail:   "Expected the start of an expression, but found the end of the file.",
-					Subject:  &start.Range,
-				})
-			default:
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid expression",
-					Detail:   "Expected the start of an expression, but found an invalid expression token.",
-					Subject:  &start.Range,
-				})
-			}
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid expression",
+				Detail:   "Expected the start of an expression, but found an invalid expression token.",
+				Subject:  &start.Range,
+			})
 		}
 		p.setRecovery()
 
@@ -1152,76 +1100,16 @@ func (p *parser) numberLitValue(tok Token) (cty.Value, hcl.Diagnostics) {
 
 // finishParsingFunctionCall parses a function call assuming that the function
 // name was already read, and so the peeker should be pointing at the opening
-// parenthesis after the name, or at the double-colon after the initial
-// function scope name.
+// parenthesis after the name.
 func (p *parser) finishParsingFunctionCall(name Token) (Expression, hcl.Diagnostics) {
-	var diags hcl.Diagnostics
-
 	openTok := p.Read()
-	if openTok.Type != TokenOParen && openTok.Type != TokenDoubleColon {
-		// should never happen if callers behave
-		panic("finishParsingFunctionCall called with unsupported next token")
-	}
-
-	nameStr := string(name.Bytes)
-	nameEndPos := name.Range.End
-	for openTok.Type == TokenDoubleColon {
-		nextName := p.Read()
-		if nextName.Type != TokenIdent {
-			diag := hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Missing function name",
-				Detail:   "Function scope resolution symbol :: must be followed by a function name in this scope.",
-				Subject:  &nextName.Range,
-				Context:  hcl.RangeBetween(name.Range, nextName.Range).Ptr(),
-			}
-			diags = append(diags, &diag)
-			p.recoverOver(TokenOParen)
-			return &ExprSyntaxError{
-				ParseDiags:  hcl.Diagnostics{&diag},
-				Placeholder: cty.DynamicVal,
-				SrcRange:    hcl.RangeBetween(name.Range, nextName.Range),
-			}, diags
-		}
-
-		// Initial versions of HCLv2 didn't support function namespaces, and
-		// so for backward compatibility we just treat namespaced functions
-		// as weird names with "::" separators in them, saved as a string
-		// to keep the API unchanged. FunctionCallExpr also has some special
-		// handling of names containing :: when referring to a function that
-		// doesn't exist in EvalContext, to return better error messages
-		// when namespaces are used incorrectly.
-		nameStr = nameStr + "::" + string(nextName.Bytes)
-		nameEndPos = nextName.Range.End
-
-		openTok = p.Read()
-	}
-
-	nameRange := hcl.Range{
-		Filename: name.Range.Filename,
-		Start:    name.Range.Start,
-		End:      nameEndPos,
-	}
-
 	if openTok.Type != TokenOParen {
-		diag := hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Missing open parenthesis",
-			Detail:   "Function selector must be followed by an open parenthesis to begin the function call.",
-			Subject:  &openTok.Range,
-			Context:  hcl.RangeBetween(name.Range, openTok.Range).Ptr(),
-		}
-
-		diags = append(diags, &diag)
-		p.recoverOver(TokenOParen)
-		return &ExprSyntaxError{
-			ParseDiags:  hcl.Diagnostics{&diag},
-			Placeholder: cty.DynamicVal,
-			SrcRange:    hcl.RangeBetween(name.Range, openTok.Range),
-		}, diags
+		// should never happen if callers behave
+		panic("finishParsingFunctionCall called with non-parenthesis as next token")
 	}
 
 	var args []Expression
+	var diags hcl.Diagnostics
 	var expandFinal bool
 	var closeTok Token
 
@@ -1244,12 +1132,7 @@ Token:
 			// if there was a parse error in the argument then we've
 			// probably been left in a weird place in the token stream,
 			// so we'll bail out with a partial argument list.
-			recoveredTok := p.recover(TokenCParen)
-
-			// record the recovered token, if one was found
-			if recoveredTok.Type == TokenCParen {
-				closeTok = recoveredTok
-			}
+			p.recover(TokenCParen)
 			break Token
 		}
 
@@ -1280,23 +1163,13 @@ Token:
 		}
 
 		if sep.Type != TokenComma {
-			switch sep.Type {
-			case TokenEOF:
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Unterminated function call",
-					Detail:   "There is no closing parenthesis for this function call before the end of the file. This may be caused by incorrect parenthesis nesting elsewhere in this file.",
-					Subject:  hcl.RangeBetween(name.Range, openTok.Range).Ptr(),
-				})
-			default:
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Missing argument separator",
-					Detail:   "A comma is required to separate each function argument from the next.",
-					Subject:  &sep.Range,
-					Context:  hcl.RangeBetween(name.Range, sep.Range).Ptr(),
-				})
-			}
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing argument separator",
+				Detail:   "A comma is required to separate each function argument from the next.",
+				Subject:  &sep.Range,
+				Context:  hcl.RangeBetween(name.Range, sep.Range).Ptr(),
+			})
 			closeTok = p.recover(TokenCParen)
 			break Token
 		}
@@ -1312,12 +1185,12 @@ Token:
 	p.PopIncludeNewlines()
 
 	return &FunctionCallExpr{
-		Name: nameStr,
+		Name: string(name.Bytes),
 		Args: args,
 
 		ExpandFinal: expandFinal,
 
-		NameRange:       nameRange,
+		NameRange:       name.Range,
 		OpenParenRange:  openTok.Range,
 		CloseParenRange: closeTok.Range,
 	}, diags
@@ -1369,23 +1242,13 @@ func (p *parser) parseTupleCons() (Expression, hcl.Diagnostics) {
 
 		if next.Type != TokenComma {
 			if !p.recovery {
-				switch next.Type {
-				case TokenEOF:
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Unterminated tuple constructor expression",
-						Detail:   "There is no corresponding closing bracket before the end of the file. This may be caused by incorrect bracket nesting elsewhere in this file.",
-						Subject:  open.Range.Ptr(),
-					})
-				default:
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Missing item separator",
-						Detail:   "Expected a comma to mark the beginning of the next item.",
-						Subject:  &next.Range,
-						Context:  hcl.RangeBetween(open.Range, next.Range).Ptr(),
-					})
-				}
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Missing item separator",
+					Detail:   "Expected a comma to mark the beginning of the next item.",
+					Subject:  &next.Range,
+					Context:  hcl.RangeBetween(open.Range, next.Range).Ptr(),
+				})
 			}
 			close = p.recover(TokenCBrack)
 			break
@@ -1496,13 +1359,6 @@ func (p *parser) parseObjectCons() (Expression, hcl.Diagnostics) {
 						Subject:  &next.Range,
 						Context:  hcl.RangeBetween(open.Range, next.Range).Ptr(),
 					})
-				case TokenEOF:
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Unterminated object constructor expression",
-						Detail:   "There is no corresponding closing brace before the end of the file. This may be caused by incorrect brace nesting elsewhere in this file.",
-						Subject:  open.Range.Ptr(),
-					})
 				default:
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -1523,16 +1379,6 @@ func (p *parser) parseObjectCons() (Expression, hcl.Diagnostics) {
 		diags = append(diags, valueDiags...)
 
 		if p.recovery && valueDiags.HasErrors() {
-			// If the value is an ExprSyntaxError, we can add an item with it, even though we will recover afterwards
-			// This allows downstream consumers to still retrieve this first invalid item, even though following items
-			// won't be parsed. This is useful for supplying completions.
-			if exprSyntaxError, ok := value.(*ExprSyntaxError); ok {
-				items = append(items, ObjectConsItem{
-					KeyExpr:   key,
-					ValueExpr: exprSyntaxError,
-				})
-			}
-
 			// If expression parsing failed then we are probably in a strange
 			// place in the token stream, so we'll bail out and try to reset
 			// to after our closing brace to allow parsing to continue.
@@ -1553,23 +1399,13 @@ func (p *parser) parseObjectCons() (Expression, hcl.Diagnostics) {
 
 		if next.Type != TokenComma && next.Type != TokenNewline {
 			if !p.recovery {
-				switch next.Type {
-				case TokenEOF:
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Unterminated object constructor expression",
-						Detail:   "There is no corresponding closing brace before the end of the file. This may be caused by incorrect brace nesting elsewhere in this file.",
-						Subject:  open.Range.Ptr(),
-					})
-				default:
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Missing attribute separator",
-						Detail:   "Expected a newline or comma to mark the beginning of the next attribute.",
-						Subject:  &next.Range,
-						Context:  hcl.RangeBetween(open.Range, next.Range).Ptr(),
-					})
-				}
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Missing attribute separator",
+					Detail:   "Expected a newline or comma to mark the beginning of the next attribute.",
+					Subject:  &next.Range,
+					Context:  hcl.RangeBetween(open.Range, next.Range).Ptr(),
+				})
 			}
 			close = p.recover(TokenCBrace)
 			break
@@ -1825,7 +1661,7 @@ func (p *parser) parseQuotedStringLiteral() (string, hcl.Range, hcl.Diagnostics)
 
 	var diags hcl.Diagnostics
 	ret := &bytes.Buffer{}
-	var endRange hcl.Range
+	var cQuote Token
 
 Token:
 	for {
@@ -1833,7 +1669,7 @@ Token:
 		switch tok.Type {
 
 		case TokenCQuote:
-			endRange = tok.Range
+			cQuote = tok
 			break Token
 
 		case TokenQuotedLit:
@@ -1876,7 +1712,6 @@ Token:
 				Subject:  &tok.Range,
 				Context:  hcl.RangeBetween(oQuote.Range, tok.Range).Ptr(),
 			})
-			endRange = tok.Range
 			break Token
 
 		default:
@@ -1889,14 +1724,13 @@ Token:
 				Context:  hcl.RangeBetween(oQuote.Range, tok.Range).Ptr(),
 			})
 			p.recover(TokenCQuote)
-			endRange = tok.Range
 			break Token
 
 		}
 
 	}
 
-	return ret.String(), hcl.RangeBetween(oQuote.Range, endRange), diags
+	return ret.String(), hcl.RangeBetween(oQuote.Range, cQuote.Range), diags
 }
 
 // ParseStringLiteralToken processes the given token, which must be either a

@@ -1,5 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-
 // Package auth contains types and functions to manage authentication
 // credentials for service hosts.
 package auth

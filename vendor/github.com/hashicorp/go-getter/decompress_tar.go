@@ -11,25 +11,12 @@ import (
 
 // untar is a shared helper for untarring an archive. The reader should provide
 // an uncompressed view of the tar archive.
-func untar(input io.Reader, dst, src string, dir bool, umask os.FileMode, fileSizeLimit int64, filesLimit int) error {
+func untar(input io.Reader, dst, src string, dir bool, umask os.FileMode) error {
 	tarR := tar.NewReader(input)
 	done := false
 	dirHdrs := []*tar.Header{}
 	now := time.Now()
-
-	var (
-		fileSize   int64
-		filesCount int
-	)
-
 	for {
-		if filesLimit > 0 {
-			filesCount++
-			if filesCount > filesLimit {
-				return fmt.Errorf("tar archive contains too many files: %d > %d", filesCount, filesLimit)
-			}
-		}
-
 		hdr, err := tarR.Next()
 		if err == io.EOF {
 			if !done {
@@ -58,15 +45,7 @@ func untar(input io.Reader, dst, src string, dir bool, umask os.FileMode, fileSi
 			path = filepath.Join(path, hdr.Name)
 		}
 
-		fileInfo := hdr.FileInfo()
-
-		fileSize += fileInfo.Size()
-
-		if fileSizeLimit > 0 && fileSize > fileSizeLimit {
-			return fmt.Errorf("tar archive larger than limit: %d", fileSizeLimit)
-		}
-
-		if fileInfo.IsDir() {
+		if hdr.FileInfo().IsDir() {
 			if !dir {
 				return fmt.Errorf("expected a single file: %s", src)
 			}
@@ -102,8 +81,8 @@ func untar(input io.Reader, dst, src string, dir bool, umask os.FileMode, fileSi
 		// Mark that we're done so future in single file mode errors
 		done = true
 
-		// Size limit is tracked using the returned file info.
-		err = copyReader(path, tarR, hdr.FileInfo().Mode(), umask, 0)
+		// Open the file for writing
+		err = copyReader(path, tarR, hdr.FileInfo().Mode(), umask)
 		if err != nil {
 			return err
 		}
@@ -146,23 +125,11 @@ func untar(input io.Reader, dst, src string, dir bool, umask os.FileMode, fileSi
 	return nil
 }
 
-// TarDecompressor is an implementation of Decompressor that can
+// tarDecompressor is an implementation of Decompressor that can
 // unpack tar files.
-type TarDecompressor struct {
-	// FileSizeLimit limits the total size of all
-	// decompressed files.
-	//
-	// The zero value means no limit.
-	FileSizeLimit int64
+type tarDecompressor struct{}
 
-	// FilesLimit limits the number of files that are
-	// allowed to be decompressed.
-	//
-	// The zero value means no limit.
-	FilesLimit int
-}
-
-func (d *TarDecompressor) Decompress(dst, src string, dir bool, umask os.FileMode) error {
+func (d *tarDecompressor) Decompress(dst, src string, dir bool, umask os.FileMode) error {
 	// If we're going into a directory we should make that first
 	mkdir := dst
 	if !dir {
@@ -179,5 +146,5 @@ func (d *TarDecompressor) Decompress(dst, src string, dir bool, umask os.FileMod
 	}
 	defer f.Close()
 
-	return untar(f, dst, src, dir, umask, d.FileSizeLimit, d.FilesLimit)
+	return untar(f, dst, src, dir, umask)
 }
