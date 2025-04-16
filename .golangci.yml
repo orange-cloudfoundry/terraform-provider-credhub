@@ -1,28 +1,43 @@
-issues:
-  exclude-rules:
-    # Exclude issues bypassing staticcheck.conf
-    - linters:
-        - staticcheck
-      text: "SA1019:"
-  max-same-issues: 0
-
+version: "2"
+run:
+  tests: false
 linters:
-  disable-all: true
+  default: none
   enable:
+    - bodyclose
     - errcheck
-    - gofmt
-    - gosimple
+    - govet
     - ineffassign
     - misspell
     - staticcheck
     - unconvert
     - unused
-    - govet
-    - bodyclose
-
-linters-settings:
-  gofmt:
-    simplify: false
-
-run:
-  tests: false
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - staticcheck
+        text: 'SA1019:'
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+  settings:
+    gofmt:
+      simplify: false
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

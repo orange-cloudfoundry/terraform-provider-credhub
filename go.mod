@@ -1,6 +1,6 @@
 module github.com/orange-cloudfoundry/terraform-provider-credhub
 
-go 1.23.4
+go 1.24.1
 
 exclude (
 	github.com/imdario/mergo v1.0.0
