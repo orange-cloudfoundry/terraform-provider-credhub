@@ -1,4 +1,3 @@
-//go:build go1.6
 // +build go1.6
 
 package s3
@@ -25,5 +24,5 @@ func add100Continue(r *request.Request) {
 		return
 	}
 
-	r.HTTPRequest.Header.Set("Expect", "100-continue")
+	r.HTTPRequest.Header.Set("Expect", "100-Continue")
 }

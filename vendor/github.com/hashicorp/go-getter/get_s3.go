@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -21,24 +20,10 @@ import (
 // a S3 bucket.
 type S3Getter struct {
 	getter
-
-	// Timeout sets a deadline which all S3 operations should
-	// complete within.
-	//
-	// The zero value means timeout.
-	Timeout time.Duration
 }
 
 func (g *S3Getter) ClientMode(u *url.URL) (ClientMode, error) {
 	// Parse URL
-	ctx := g.Context()
-
-	if g.Timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, g.Timeout)
-		defer cancel()
-	}
-
 	region, bucket, path, _, creds, err := g.parseUrl(u)
 	if err != nil {
 		return 0, err
@@ -55,7 +40,7 @@ func (g *S3Getter) ClientMode(u *url.URL) (ClientMode, error) {
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(path),
 	}
-	resp, err := client.ListObjectsWithContext(ctx, req)
+	resp, err := client.ListObjects(req)
 	if err != nil {
 		return 0, err
 	}
@@ -79,12 +64,6 @@ func (g *S3Getter) ClientMode(u *url.URL) (ClientMode, error) {
 
 func (g *S3Getter) Get(dst string, u *url.URL) error {
 	ctx := g.Context()
-
-	if g.Timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, g.Timeout)
-		defer cancel()
-	}
 
 	// Parse URL
 	region, bucket, path, _, creds, err := g.parseUrl(u)
@@ -127,7 +106,7 @@ func (g *S3Getter) Get(dst string, u *url.URL) error {
 			req.Marker = aws.String(lastMarker)
 		}
 
-		resp, err := client.ListObjectsWithContext(ctx, req)
+		resp, err := client.ListObjects(req)
 		if err != nil {
 			return err
 		}
@@ -162,13 +141,6 @@ func (g *S3Getter) Get(dst string, u *url.URL) error {
 
 func (g *S3Getter) GetFile(dst string, u *url.URL) error {
 	ctx := g.Context()
-
-	if g.Timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, g.Timeout)
-		defer cancel()
-	}
-
 	region, bucket, path, version, creds, err := g.parseUrl(u)
 	if err != nil {
 		return err
@@ -191,7 +163,7 @@ func (g *S3Getter) getObject(ctx context.Context, client *s3.S3, dst, bucket, ke
 		req.VersionId = aws.String(version)
 	}
 
-	resp, err := client.GetObjectWithContext(ctx, req)
+	resp, err := client.GetObject(req)
 	if err != nil {
 		return err
 	}
@@ -201,16 +173,7 @@ func (g *S3Getter) getObject(ctx context.Context, client *s3.S3, dst, bucket, ke
 		return err
 	}
 
-	body := resp.Body
-
-	if g.client != nil && g.client.ProgressListener != nil {
-		fn := filepath.Base(key)
-		body = g.client.ProgressListener.TrackProgress(fn, 0, *resp.ContentLength, resp.Body)
-	}
-	defer body.Close()
-
-	// There is no limit set for the size of an object from S3
-	return copyReader(dst, body, 0666, g.client.umask(), 0)
+	return copyReader(dst, resp.Body, 0666, g.client.umask())
 }
 
 func (g *S3Getter) getAWSConfig(region string, url *url.URL, creds *credentials.Credentials) *aws.Config {
@@ -268,35 +231,23 @@ func (g *S3Getter) parseUrl(u *url.URL) (region, bucket, path, version string, c
 				region = "us-east-1"
 			}
 			pathParts := strings.SplitN(u.Path, "/", 3)
-			if len(pathParts) < 3 {
-				err = fmt.Errorf("URL is not a valid S3 URL")
-				return
-			}
 			bucket = pathParts[1]
 			path = pathParts[2]
 		// vhost-style, dash region indication
 		case 4:
-			// Parse the region out of the second part of the host
+			// Parse the region out of the first part of the host
 			region = strings.TrimPrefix(strings.TrimPrefix(hostParts[1], "s3-"), "s3")
 			if region == "" {
 				err = fmt.Errorf("URL is not a valid S3 URL")
 				return
 			}
 			pathParts := strings.SplitN(u.Path, "/", 2)
-			if len(pathParts) < 2 {
-				err = fmt.Errorf("URL is not a valid S3 URL")
-				return
-			}
 			bucket = hostParts[0]
 			path = pathParts[1]
 		//vhost-style, dot region indication
 		case 5:
 			region = hostParts[2]
 			pathParts := strings.SplitN(u.Path, "/", 2)
-			if len(pathParts) < 2 {
-				err = fmt.Errorf("URL is not a valid S3 URL")
-				return
-			}
 			bucket = hostParts[0]
 			path = pathParts[1]
 
@@ -310,7 +261,7 @@ func (g *S3Getter) parseUrl(u *url.URL) (region, bucket, path, version string, c
 	} else {
 		pathParts := strings.SplitN(u.Path, "/", 3)
 		if len(pathParts) != 3 {
-			err = fmt.Errorf("URL is not a valid S3 compliant URL")
+			err = fmt.Errorf("URL is not a valid S3 complaint URL")
 			return
 		}
 		bucket = pathParts[1]

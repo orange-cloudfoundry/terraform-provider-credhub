@@ -9,19 +9,7 @@ import (
 
 // ZipDecompressor is an implementation of Decompressor that can
 // decompress zip files.
-type ZipDecompressor struct {
-	// FileSizeLimit limits the total size of all
-	// decompressed files.
-	//
-	// The zero value means no limit.
-	FileSizeLimit int64
-
-	// FilesLimit limits the number of files that are
-	// allowed to be decompressed.
-	//
-	// The zero value means no limit.
-	FilesLimit int
-}
+type ZipDecompressor struct{}
 
 func (d *ZipDecompressor) Decompress(dst, src string, dir bool, umask os.FileMode) error {
 	// If we're going into a directory we should make that first
@@ -49,12 +37,6 @@ func (d *ZipDecompressor) Decompress(dst, src string, dir bool, umask os.FileMod
 		return fmt.Errorf("expected a single file: %s", src)
 	}
 
-	if d.FilesLimit > 0 && len(zipR.File) > d.FilesLimit {
-		return fmt.Errorf("zip archive contains too many files: %d > %d", len(zipR.File), d.FilesLimit)
-	}
-
-	var fileSizeTotal int64
-
 	// Go through and unarchive
 	for _, f := range zipR.File {
 		path := dst
@@ -67,15 +49,7 @@ func (d *ZipDecompressor) Decompress(dst, src string, dir bool, umask os.FileMod
 			path = filepath.Join(path, f.Name)
 		}
 
-		fileInfo := f.FileInfo()
-
-		fileSizeTotal += fileInfo.Size()
-
-		if d.FileSizeLimit > 0 && fileSizeTotal > d.FileSizeLimit {
-			return fmt.Errorf("zip archive larger than limit: %d", d.FileSizeLimit)
-		}
-
-		if fileInfo.IsDir() {
+		if f.FileInfo().IsDir() {
 			if !dir {
 				return fmt.Errorf("expected a single file: %s", src)
 			}
@@ -100,14 +74,11 @@ func (d *ZipDecompressor) Decompress(dst, src string, dir bool, umask os.FileMod
 		// Open the file for reading
 		srcF, err := f.Open()
 		if err != nil {
-			if srcF != nil {
-				srcF.Close()
-			}
+			srcF.Close()
 			return err
 		}
 
-		// Size limit is tracked using the returned file info.
-		err = copyReader(path, srcF, f.Mode(), umask, 0)
+		err = copyReader(path, srcF, f.Mode(), umask)
 		srcF.Close()
 		if err != nil {
 			return err

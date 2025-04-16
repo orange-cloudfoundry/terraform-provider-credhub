@@ -1,13 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package hclsyntax
 
 import (
 	"bytes"
 	"fmt"
 
-	"github.com/apparentlymart/go-textseg/v15/textseg"
+	"github.com/apparentlymart/go-textseg/v12/textseg"
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -63,9 +60,8 @@ const (
 	TokenDot   TokenType = '.'
 	TokenComma TokenType = ','
 
-	TokenDoubleColon TokenType = '⸬'
-	TokenEllipsis    TokenType = '…'
-	TokenFatArrow    TokenType = '⇒'
+	TokenEllipsis TokenType = '…'
+	TokenFatArrow TokenType = '⇒'
 
 	TokenQuestion TokenType = '?'
 	TokenColon    TokenType = ':'
@@ -195,10 +191,8 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 	toldBadUTF8 := 0
 
 	for _, tok := range tokens {
-		tokRange := func() *hcl.Range {
-			r := tok.Range
-			return &r
-		}
+		// copy token so it's safe to point to it
+		tok := tok
 
 		switch tok.Type {
 		case TokenBitwiseAnd, TokenBitwiseOr, TokenBitwiseXor, TokenBitwiseNot:
@@ -217,7 +211,7 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 					Severity: hcl.DiagError,
 					Summary:  "Unsupported operator",
 					Detail:   fmt.Sprintf("Bitwise operators are not supported.%s", suggestion),
-					Subject:  tokRange(),
+					Subject:  &tok.Range,
 				})
 				toldBitwise++
 			}
@@ -227,7 +221,7 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 					Severity: hcl.DiagError,
 					Summary:  "Unsupported operator",
 					Detail:   "\"**\" is not a supported operator. Exponentiation is not supported as an operator.",
-					Subject:  tokRange(),
+					Subject:  &tok.Range,
 				})
 
 				toldExponent++
@@ -240,7 +234,7 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid character",
 					Detail:   "The \"`\" character is not valid. To create a multi-line string, use the \"heredoc\" syntax, like \"<<EOT\".",
-					Subject:  tokRange(),
+					Subject:  &tok.Range,
 				})
 			}
 			if toldBacktick <= 2 {
@@ -252,7 +246,7 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid character",
 					Detail:   "Single quotes are not valid. Use double quotes (\") to enclose strings.",
-					Subject:  tokRange(),
+					Subject:  &tok.Range,
 				}
 				diags = append(diags, newDiag)
 			}
@@ -265,7 +259,7 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid character",
 					Detail:   "The \";\" character is not valid. Use newlines to separate arguments and blocks, and commas to separate items in collection values.",
-					Subject:  tokRange(),
+					Subject:  &tok.Range,
 				})
 
 				toldSemicolon++
@@ -276,7 +270,7 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid character",
 					Detail:   "Tab characters may not be used. The recommended indentation style is two spaces per indent.",
-					Subject:  tokRange(),
+					Subject:  &tok.Range,
 				})
 
 				toldTabs++
@@ -287,7 +281,7 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid character encoding",
 					Detail:   "All input files must be UTF-8 encoded. Ensure that UTF-8 encoding is selected in your editor.",
-					Subject:  tokRange(),
+					Subject:  &tok.Range,
 				})
 
 				toldBadUTF8++
@@ -297,7 +291,7 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 				Severity: hcl.DiagError,
 				Summary:  "Invalid multi-line string",
 				Detail:   "Quoted strings may not be split over multiple lines. To produce a multi-line string, either use the \\n escape to represent a newline character or use the \"heredoc\" multi-line template syntax.",
-				Subject:  tokRange(),
+				Subject:  &tok.Range,
 			})
 		case TokenInvalid:
 			chars := string(tok.Bytes)
@@ -307,14 +301,14 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid character",
 					Detail:   "\"Curly quotes\" are not valid here. These can sometimes be inadvertently introduced when sharing code via documents or discussion forums. It might help to replace the character with a \"straight quote\".",
-					Subject:  tokRange(),
+					Subject:  &tok.Range,
 				})
 			default:
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid character",
 					Detail:   "This character is not used within the language.",
-					Subject:  tokRange(),
+					Subject:  &tok.Range,
 				})
 			}
 		}

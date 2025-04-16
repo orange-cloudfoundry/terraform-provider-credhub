@@ -12,9 +12,6 @@ func marshal(val cty.Value, t cty.Type, path cty.Path, b *bytes.Buffer) error {
 	if val.IsMarked() {
 		return path.NewErrorf("value has marks, so it cannot be serialized as JSON")
 	}
-	if !val.IsKnown() {
-		return path.NewErrorf("value is not known")
-	}
 
 	// If we're going to decode as DynamicPseudoType then we need to save
 	// dynamic type information to recover the real type.
@@ -25,6 +22,10 @@ func marshal(val cty.Value, t cty.Type, path cty.Path, b *bytes.Buffer) error {
 	if val.IsNull() {
 		b.WriteString("null")
 		return nil
+	}
+
+	if !val.IsKnown() {
+		return path.NewErrorf("value is not known")
 	}
 
 	// The caller should've guaranteed that the given val is conformant with
@@ -184,10 +185,7 @@ func marshalDynamic(val cty.Value, path cty.Path, b *bytes.Buffer) error {
 		return path.NewErrorf("failed to serialize type: %s", err)
 	}
 	b.WriteString(`{"value":`)
-	err = marshal(val, val.Type(), path, b)
-	if err != nil {
-		return path.NewErrorf("failed to serialize value: %s", err)
-	}
+	marshal(val, val.Type(), path, b)
 	b.WriteString(`,"type":`)
 	b.Write(typeJSON)
 	b.WriteRune('}')

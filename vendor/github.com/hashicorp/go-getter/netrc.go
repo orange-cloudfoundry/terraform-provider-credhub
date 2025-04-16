@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"os"
 	"runtime"
-	"syscall"
 
 	"github.com/bgentry/go-netrc/netrc"
 	"github.com/mitchellh/go-homedir"
@@ -39,7 +38,7 @@ func addAuthFromNetrc(u *url.URL) error {
 	// If the file is not a file, then do nothing
 	if fi, err := os.Stat(path); err != nil {
 		// File doesn't exist, do nothing
-		if serr, ok := err.(*os.PathError); ok && (os.IsNotExist(serr.Err) || serr.Err == syscall.ENOTDIR) {
+		if os.IsNotExist(err) {
 			return nil
 		}
 

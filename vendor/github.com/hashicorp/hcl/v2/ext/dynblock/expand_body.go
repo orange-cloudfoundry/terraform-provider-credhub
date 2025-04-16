@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package dynblock
 
 import (
@@ -16,9 +13,6 @@ type expandBody struct {
 	original   hcl.Body
 	forEachCtx *hcl.EvalContext
 	iteration  *iteration // non-nil if we're nested inside another "dynamic" block
-	valueMarks cty.ValueMarks
-
-	checkForEach []func(cty.Value, hcl.Expression, *hcl.EvalContext) hcl.Diagnostics
 
 	// These are used with PartialContent to produce a "remaining items"
 	// body to return. They are nil on all bodies fresh out of the transformer.
@@ -69,7 +63,6 @@ func (b *expandBody) PartialContent(schema *hcl.BodySchema) (*hcl.BodyContent, h
 		original:     b.original,
 		forEachCtx:   b.forEachCtx,
 		iteration:    b.iteration,
-		checkForEach: b.checkForEach,
 		hiddenAttrs:  make(map[string]struct{}),
 		hiddenBlocks: make(map[string]hcl.BlockHeaderSchema),
 	}
@@ -126,7 +119,7 @@ func (b *expandBody) extendSchema(schema *hcl.BodySchema) *hcl.BodySchema {
 }
 
 func (b *expandBody) prepareAttributes(rawAttrs hcl.Attributes) hcl.Attributes {
-	if len(b.hiddenAttrs) == 0 && b.iteration == nil && len(b.valueMarks) == 0 {
+	if len(b.hiddenAttrs) == 0 && b.iteration == nil {
 		// Easy path: just pass through the attrs from the original body verbatim
 		return rawAttrs
 	}
@@ -143,24 +136,13 @@ func (b *expandBody) prepareAttributes(rawAttrs hcl.Attributes) hcl.Attributes {
 		if b.iteration != nil {
 			attr := *rawAttr // shallow copy so we can mutate it
 			attr.Expr = exprWrap{
-				Expression:  attr.Expr,
-				i:           b.iteration,
-				resultMarks: b.valueMarks,
+				Expression: attr.Expr,
+				i:          b.iteration,
 			}
 			attrs[name] = &attr
 		} else {
-			// If we have no active iteration then no wrapping is required
-			// unless we have marks to apply.
-			if len(b.valueMarks) != 0 {
-				attr := *rawAttr // shallow copy so we can mutate it
-				attr.Expr = exprWrap{
-					Expression:  attr.Expr,
-					resultMarks: b.valueMarks,
-				}
-				attrs[name] = &attr
-			} else {
-				attrs[name] = rawAttr
-			}
+			// If we have no active iteration then no wrapping is required.
+			attrs[name] = rawAttr
 		}
 	}
 	return attrs
@@ -204,9 +186,8 @@ func (b *expandBody) expandBlocks(schema *hcl.BodySchema, rawBlocks hcl.Blocks, 
 				continue
 			}
 
-			forEachVal, marks := spec.forEachVal.Unmark()
-			if forEachVal.IsKnown() {
-				for it := forEachVal.ElementIterator(); it.Next(); {
+			if spec.forEachVal.IsKnown() {
+				for it := spec.forEachVal.ElementIterator(); it.Next(); {
 					key, value := it.Element()
 					i := b.iteration.MakeChild(spec.iteratorName, key, value)
 
@@ -215,22 +196,33 @@ func (b *expandBody) expandBlocks(schema *hcl.BodySchema, rawBlocks hcl.Blocks, 
 					if block != nil {
 						// Attach our new iteration context so that attributes
 						// and other nested blocks can refer to our iterator.
-						block.Body = b.expandChild(block.Body, i, marks)
+						block.Body = b.expandChild(block.Body, i)
 						blocks = append(blocks, block)
 					}
 				}
 			} else {
-				// If our top-level iteration value isn't known then we
-				// substitute an unknownBody, which will cause the entire block
-				// to evaluate to an unknown value.
+				// If our top-level iteration value isn't known then we're forced
+				// to compromise since HCL doesn't have any concept of an
+				// "unknown block". In this case then, we'll produce a single
+				// dynamic block with the iterator values set to DynamicVal,
+				// which at least makes the potential for a block visible
+				// in our result, even though it's not represented in a fully-accurate
+				// way.
 				i := b.iteration.MakeChild(spec.iteratorName, cty.DynamicVal, cty.DynamicVal)
 				block, blockDiags := spec.newBlock(i, b.forEachCtx)
 				diags = append(diags, blockDiags...)
 				if block != nil {
-					block.Body = unknownBody{
-						template:   b.expandChild(block.Body, i, marks),
-						valueMarks: marks,
-					}
+					block.Body = b.expandChild(block.Body, i)
+
+					// We additionally force all of the leaf attribute values
+					// in the result to be unknown so the calling application
+					// can, if necessary, use that as a heuristic to detect
+					// when a single nested block might be standing in for
+					// multiple blocks yet to be expanded. This retains the
+					// structure of the generated body but forces all of its
+					// leaf attribute values to be unknown.
+					block.Body = unknownBody{block.Body}
+
 					blocks = append(blocks, block)
 				}
 			}
@@ -242,7 +234,7 @@ func (b *expandBody) expandBlocks(schema *hcl.BodySchema, rawBlocks hcl.Blocks, 
 				// case it contains expressions that refer to our inherited
 				// iterators, or nested "dynamic" blocks.
 				expandedBlock := *rawBlock // shallow copy
-				expandedBlock.Body = b.expandChild(rawBlock.Body, b.iteration, nil)
+				expandedBlock.Body = b.expandChild(rawBlock.Body, b.iteration)
 				blocks = append(blocks, &expandedBlock)
 			}
 		}
@@ -251,12 +243,10 @@ func (b *expandBody) expandBlocks(schema *hcl.BodySchema, rawBlocks hcl.Blocks, 
 	return blocks, diags
 }
 
-func (b *expandBody) expandChild(child hcl.Body, i *iteration, valueMarks cty.ValueMarks) hcl.Body {
+func (b *expandBody) expandChild(child hcl.Body, i *iteration) hcl.Body {
 	chiCtx := i.EvalContext(b.forEachCtx)
 	ret := Expand(child, chiCtx)
 	ret.(*expandBody).iteration = i
-	ret.(*expandBody).checkForEach = b.checkForEach
-	ret.(*expandBody).valueMarks = valueMarks
 	return ret
 }
 
@@ -269,9 +259,4 @@ func (b *expandBody) JustAttributes() (hcl.Attributes, hcl.Diagnostics) {
 
 func (b *expandBody) MissingItemRange() hcl.Range {
 	return b.original.MissingItemRange()
-}
-
-// hcldec.MarkedBody impl
-func (b *expandBody) BodyValueMarks() cty.ValueMarks {
-	return b.valueMarks
 }

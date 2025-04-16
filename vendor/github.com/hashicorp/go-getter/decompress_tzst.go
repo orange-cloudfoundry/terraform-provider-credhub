@@ -2,27 +2,14 @@ package getter
 
 import (
 	"fmt"
+	"github.com/klauspost/compress/zstd"
 	"os"
 	"path/filepath"
-
-	"github.com/klauspost/compress/zstd"
 )
 
 // TarZstdDecompressor is an implementation of Decompressor that can
 // decompress tar.zstd files.
-type TarZstdDecompressor struct {
-	// FileSizeLimit limits the total size of all
-	// decompressed files.
-	//
-	// The zero value means no limit.
-	FileSizeLimit int64
-
-	// FilesLimit limits the number of files that are
-	// allowed to be decompressed.
-	//
-	// The zero value means no limit.
-	FilesLimit int
-}
+type TarZstdDecompressor struct{}
 
 func (d *TarZstdDecompressor) Decompress(dst, src string, dir bool, umask os.FileMode) error {
 	// If we're going into a directory we should make that first
@@ -48,5 +35,5 @@ func (d *TarZstdDecompressor) Decompress(dst, src string, dir bool, umask os.Fil
 	}
 	defer zstdR.Close()
 
-	return untar(zstdR, dst, src, dir, umask, d.FileSizeLimit, d.FilesLimit)
+	return untar(zstdR, dst, src, dir, umask)
 }

@@ -11,7 +11,7 @@ import (
 	"io"
 
 	"github.com/klauspost/compress/huff0"
-	snappy "github.com/klauspost/compress/internal/snapref"
+	"github.com/klauspost/compress/snappy"
 )
 
 const (
@@ -95,9 +95,10 @@ func (r *SnappyConverter) Convert(in io.Reader, w io.Writer) (int64, error) {
 	var written int64
 	var readHeader bool
 	{
-		header := frameHeader{WindowSize: snappyMaxBlockSize}.appendTo(r.buf[:0])
-
+		var header []byte
 		var n int
+		header, r.err = frameHeader{WindowSize: snappyMaxBlockSize}.appendTo(r.buf[:0])
+
 		n, r.err = w.Write(header)
 		if r.err != nil {
 			return written, r.err
@@ -184,6 +185,7 @@ func (r *SnappyConverter) Convert(in io.Reader, w io.Writer) (int64, error) {
 				r.block.reset(nil)
 				r.block.literals, err = snappy.Decode(r.block.literals[:n], r.buf[snappyChecksumSize:chunkLen])
 				if err != nil {
+					println("snappy.Decode:", err)
 					return written, err
 				}
 				err = r.block.encodeLits(r.block.literals, false)
@@ -202,7 +204,7 @@ func (r *SnappyConverter) Convert(in io.Reader, w io.Writer) (int64, error) {
 			written += int64(n)
 			continue
 		case chunkTypeUncompressedData:
-			if debugEncoder {
+			if debug {
 				println("Uncompressed, chunklen", chunkLen)
 			}
 			// Section 4.3. Uncompressed data (chunk type 0x01).
@@ -245,7 +247,7 @@ func (r *SnappyConverter) Convert(in io.Reader, w io.Writer) (int64, error) {
 			continue
 
 		case chunkTypeStreamIdentifier:
-			if debugEncoder {
+			if debug {
 				println("stream id", chunkLen, len(snappyMagicBody))
 			}
 			// Section 4.1. Stream identifier (chunk type 0xff).
@@ -415,7 +417,7 @@ var crcTable = crc32.MakeTable(crc32.Castagnoli)
 // https://github.com/google/snappy/blob/master/framing_format.txt
 func snappyCRC(b []byte) uint32 {
 	c := crc32.Update(0, crcTable, b)
-	return c>>15 | c<<17 + 0xa282ead8
+	return uint32(c>>15|c<<17) + 0xa282ead8
 }
 
 // snappyDecodedLen returns the length of the decoded block and the number of bytes

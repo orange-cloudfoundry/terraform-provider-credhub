@@ -92,6 +92,7 @@ func (c *cState) init(bw *bitWriter, ct *cTable, tableLog uint8, first symbolTra
 	im := int32((nbBitsOut << 16) - first.deltaNbBits)
 	lu := (im >> nbBitsOut) + first.deltaFindState
 	c.state = c.stateTable[lu]
+	return
 }
 
 // encode the output symbol provided and write it to the bitstream.
@@ -146,51 +147,54 @@ func (s *Scratch) compress(src []byte) error {
 		c1.encodeZero(tt[src[ip-2]])
 		ip -= 2
 	}
-	src = src[:ip]
 
 	// Main compression loop.
 	switch {
 	case !s.zeroBits && s.actualTableLog <= 8:
 		// We can encode 4 symbols without requiring a flush.
 		// We do not need to check if any output is 0 bits.
-		for ; len(src) >= 4; src = src[:len(src)-4] {
+		for ip >= 4 {
 			s.bw.flush32()
-			v3, v2, v1, v0 := src[len(src)-4], src[len(src)-3], src[len(src)-2], src[len(src)-1]
+			v3, v2, v1, v0 := src[ip-4], src[ip-3], src[ip-2], src[ip-1]
 			c2.encode(tt[v0])
 			c1.encode(tt[v1])
 			c2.encode(tt[v2])
 			c1.encode(tt[v3])
+			ip -= 4
 		}
 	case !s.zeroBits:
 		// We do not need to check if any output is 0 bits.
-		for ; len(src) >= 4; src = src[:len(src)-4] {
+		for ip >= 4 {
 			s.bw.flush32()
-			v3, v2, v1, v0 := src[len(src)-4], src[len(src)-3], src[len(src)-2], src[len(src)-1]
+			v3, v2, v1, v0 := src[ip-4], src[ip-3], src[ip-2], src[ip-1]
 			c2.encode(tt[v0])
 			c1.encode(tt[v1])
 			s.bw.flush32()
 			c2.encode(tt[v2])
 			c1.encode(tt[v3])
+			ip -= 4
 		}
 	case s.actualTableLog <= 8:
 		// We can encode 4 symbols without requiring a flush
-		for ; len(src) >= 4; src = src[:len(src)-4] {
+		for ip >= 4 {
 			s.bw.flush32()
-			v3, v2, v1, v0 := src[len(src)-4], src[len(src)-3], src[len(src)-2], src[len(src)-1]
+			v3, v2, v1, v0 := src[ip-4], src[ip-3], src[ip-2], src[ip-1]
 			c2.encodeZero(tt[v0])
 			c1.encodeZero(tt[v1])
 			c2.encodeZero(tt[v2])
 			c1.encodeZero(tt[v3])
+			ip -= 4
 		}
 	default:
-		for ; len(src) >= 4; src = src[:len(src)-4] {
+		for ip >= 4 {
 			s.bw.flush32()
-			v3, v2, v1, v0 := src[len(src)-4], src[len(src)-3], src[len(src)-2], src[len(src)-1]
+			v3, v2, v1, v0 := src[ip-4], src[ip-3], src[ip-2], src[ip-1]
 			c2.encodeZero(tt[v0])
 			c1.encodeZero(tt[v1])
 			s.bw.flush32()
 			c2.encodeZero(tt[v2])
 			c1.encodeZero(tt[v3])
+			ip -= 4
 		}
 	}
 
@@ -199,8 +203,7 @@ func (s *Scratch) compress(src []byte) error {
 	c2.flush(s.actualTableLog)
 	c1.flush(s.actualTableLog)
 
-	s.bw.close()
-	return nil
+	return s.bw.close()
 }
 
 // writeCount will write the normalized histogram count to header.
@@ -212,7 +215,7 @@ func (s *Scratch) writeCount() error {
 		previous0 bool
 		charnum   uint16
 
-		maxHeaderSize = ((int(s.symbolLen)*int(tableLog) + 4 + 2) >> 3) + 3
+		maxHeaderSize = ((int(s.symbolLen) * int(tableLog)) >> 3) + 3
 
 		// Write Table Size
 		bitStream = uint32(tableLog - minTablelog)
@@ -298,7 +301,7 @@ func (s *Scratch) writeCount() error {
 	out[outP+1] = byte(bitStream >> 8)
 	outP += (bitCount + 7) / 8
 
-	if charnum > s.symbolLen {
+	if uint16(charnum) > s.symbolLen {
 		return errors.New("internal error: charnum > s.symbolLen")
 	}
 	s.Out = out[:outP]
@@ -328,7 +331,7 @@ type cTable struct {
 func (s *Scratch) allocCtable() {
 	tableSize := 1 << s.actualTableLog
 	// get tableSymbol that is big enough.
-	if cap(s.ct.tableSymbol) < tableSize {
+	if cap(s.ct.tableSymbol) < int(tableSize) {
 		s.ct.tableSymbol = make([]byte, tableSize)
 	}
 	s.ct.tableSymbol = s.ct.tableSymbol[:tableSize]
@@ -457,17 +460,15 @@ func (s *Scratch) countSimple(in []byte) (max int) {
 	for _, v := range in {
 		s.count[v]++
 	}
-	m, symlen := uint32(0), s.symbolLen
+	m := uint32(0)
 	for i, v := range s.count[:] {
-		if v == 0 {
-			continue
-		}
 		if v > m {
 			m = v
 		}
-		symlen = uint16(i) + 1
+		if v > 0 {
+			s.symbolLen = uint16(i) + 1
+		}
 	}
-	s.symbolLen = symlen
 	return int(m)
 }
 
@@ -564,8 +565,8 @@ func (s *Scratch) normalizeCount2() error {
 		distributed  uint32
 		total        = uint32(s.br.remain())
 		tableLog     = s.actualTableLog
-		lowThreshold = total >> tableLog
-		lowOne       = (total * 3) >> (tableLog + 1)
+		lowThreshold = uint32(total >> tableLog)
+		lowOne       = uint32((total * 3) >> (tableLog + 1))
 	)
 	for i, cnt := range s.count[:s.symbolLen] {
 		if cnt == 0 {
@@ -590,7 +591,7 @@ func (s *Scratch) normalizeCount2() error {
 
 	if (total / toDistribute) > lowOne {
 		// risk of rounding to zero
-		lowOne = (total * 3) / (toDistribute * 2)
+		lowOne = uint32((total * 3) / (toDistribute * 2))
 		for i, cnt := range s.count[:s.symbolLen] {
 			if (s.norm[i] == notYetAssigned) && (cnt <= lowOne) {
 				s.norm[i] = 1
