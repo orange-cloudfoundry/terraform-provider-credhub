@@ -24,14 +24,14 @@ var resolveMap = make(map[string]resolveMapItem)
 //
 // https://yaml.org/spec/1.2/spec.html#id2805071
 var integerLiteralRegexp = regexp.MustCompile(`` +
-	// start of string, optional sign, and one of:
-	`\A[-+]?(` +
-	// octal literal with 0o prefix and optional _ spaces
-	`|0o[0-7_]+` +
-	// decimal literal and optional _ spaces
-	`|[0-9_]+` +
-	// hexadecimal literal with 0x prefix and optional _ spaces
-	`|0x[0-9a-fA-F_]+` +
+	// start of string and one of:
+	`\A(` +
+	// base10
+	`[-+]?[0-9]+` +
+	// base8
+	`|0o[0-7]+` +
+	// base16
+	`|0x[0-9a-fA-F]+` +
 	// end of group, and end of string
 	`)\z`,
 )
