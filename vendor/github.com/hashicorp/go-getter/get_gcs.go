@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package getter
 
 import (
@@ -8,6 +11,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
+
+	"golang.org/x/oauth2"
+	"google.golang.org/api/option"
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/iterator"
@@ -17,10 +24,26 @@ import (
 // a GCS bucket.
 type GCSGetter struct {
 	getter
+
+	// Timeout sets a deadline which all GCS operations should
+	// complete within. Zero value means no timeout.
+	Timeout time.Duration
+
+	// FileSizeLimit limits the size of an single
+	// decompressed file.
+	//
+	// The zero value means no limit.
+	FileSizeLimit int64
 }
 
 func (g *GCSGetter) ClientMode(u *url.URL) (ClientMode, error) {
 	ctx := g.Context()
+
+	if g.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, g.Timeout)
+		defer cancel()
+	}
 
 	// Parse URL
 	bucket, object, _, err := g.parseURL(u)
@@ -28,7 +51,7 @@ func (g *GCSGetter) ClientMode(u *url.URL) (ClientMode, error) {
 		return 0, err
 	}
 
-	client, err := storage.NewClient(ctx)
+	client, err := g.getClient(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -59,6 +82,12 @@ func (g *GCSGetter) ClientMode(u *url.URL) (ClientMode, error) {
 func (g *GCSGetter) Get(dst string, u *url.URL) error {
 	ctx := g.Context()
 
+	if g.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, g.Timeout)
+		defer cancel()
+	}
+
 	// Parse URL
 	bucket, object, _, err := g.parseURL(u)
 	if err != nil {
@@ -82,7 +111,7 @@ func (g *GCSGetter) Get(dst string, u *url.URL) error {
 		return err
 	}
 
-	client, err := storage.NewClient(ctx)
+	client, err := g.getClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -118,13 +147,19 @@ func (g *GCSGetter) Get(dst string, u *url.URL) error {
 func (g *GCSGetter) GetFile(dst string, u *url.URL) error {
 	ctx := g.Context()
 
+	if g.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, g.Timeout)
+		defer cancel()
+	}
+
 	// Parse URL
 	bucket, object, fragment, err := g.parseURL(u)
 	if err != nil {
 		return err
 	}
 
-	client, err := storage.NewClient(ctx)
+	client, err := g.getClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -153,11 +188,12 @@ func (g *GCSGetter) getObject(ctx context.Context, client *storage.Client, dst, 
 		return err
 	}
 
-	return copyReader(dst, rc, 0666, g.client.umask())
+	// There is no limit set for the size of an object from GCS
+	return copyReader(dst, rc, 0666, g.client.umask(), 0)
 }
 
 func (g *GCSGetter) parseURL(u *url.URL) (bucket, path, fragment string, err error) {
-	if strings.Contains(u.Host, "googleapis.com") {
+	if strings.HasSuffix(u.Host, ".googleapis.com") {
 		hostParts := strings.Split(u.Host, ".")
 		if len(hostParts) != 3 {
 			err = fmt.Errorf("URL is not a valid GCS URL")
@@ -172,6 +208,25 @@ func (g *GCSGetter) parseURL(u *url.URL) (bucket, path, fragment string, err err
 		bucket = pathParts[3]
 		path = pathParts[4]
 		fragment = u.Fragment
+	} else {
+		err = fmt.Errorf("URL is not a valid GCS URL")
 	}
 	return
+}
+
+func (g *GCSGetter) getClient(ctx context.Context) (client *storage.Client, err error) {
+	var opts []option.ClientOption
+
+	if v, ok := os.LookupEnv("GOOGLE_OAUTH_ACCESS_TOKEN"); ok {
+		tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
+			AccessToken: v,
+		})
+		opts = append(opts, option.WithTokenSource(tokenSource))
+	}
+
+	newClient, err := storage.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return newClient, nil
 }
