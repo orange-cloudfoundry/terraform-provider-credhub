@@ -1,13 +1,13 @@
 # cel.dev/expr v0.23.1
 ## explicit; go 1.22.0
 cel.dev/expr
-# cloud.google.com/go v0.120.1
+# cloud.google.com/go v0.121.0
 ## explicit; go 1.23.0
 cloud.google.com/go/internal
 cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
-# cloud.google.com/go/auth v0.16.0
+# cloud.google.com/go/auth v0.16.1
 ## explicit; go 1.23.0
 cloud.google.com/go/auth
 cloud.google.com/go/auth/credentials
@@ -39,14 +39,14 @@ cloud.google.com/go/iam/apiv1/iampb
 cloud.google.com/go/monitoring/apiv3/v2
 cloud.google.com/go/monitoring/apiv3/v2/monitoringpb
 cloud.google.com/go/monitoring/internal
-# cloud.google.com/go/storage v1.51.0
+# cloud.google.com/go/storage v1.53.0
 ## explicit; go 1.23.0
 cloud.google.com/go/storage
 cloud.google.com/go/storage/experimental
 cloud.google.com/go/storage/internal
 cloud.google.com/go/storage/internal/apiv2
 cloud.google.com/go/storage/internal/apiv2/storagepb
-# code.cloudfoundry.org/credhub-cli v0.0.0-20250414180459-eaea4c141b26
+# code.cloudfoundry.org/credhub-cli v0.0.0-20250505130841-11f3a43db498
 ## explicit; go 1.23.0
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -89,7 +89,7 @@ github.com/apparentlymart/go-textseg/v15/textseg
 # github.com/armon/go-radix v1.0.0
 ## explicit
 github.com/armon/go-radix
-# github.com/aws/aws-sdk-go v1.55.6
+# github.com/aws/aws-sdk-go v1.55.7
 ## explicit; go 1.19
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
@@ -154,13 +154,13 @@ github.com/bgentry/speakeasy
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cloudfoundry/go-socks5 v0.0.0-20240831012420-2590b55236ee
+# github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851
 ## explicit; go 1.21.0
 github.com/cloudfoundry/go-socks5
-# github.com/cloudfoundry/socks5-proxy v0.2.148
+# github.com/cloudfoundry/socks5-proxy v0.2.150
 ## explicit; go 1.23.0
 github.com/cloudfoundry/socks5-proxy
-# github.com/cncf/xds/go v0.0.0-20250326154945-ae57f3c0d45f
+# github.com/cncf/xds/go v0.0.0-20250501225837-2ac532fd4443
 ## explicit; go 1.19
 github.com/cncf/xds/go/udpa/annotations
 github.com/cncf/xds/go/udpa/type/v1
@@ -219,6 +219,11 @@ github.com/fatih/color
 # github.com/felixge/httpsnoop v1.0.4
 ## explicit; go 1.13
 github.com/felixge/httpsnoop
+# github.com/go-jose/go-jose/v4 v4.1.0
+## explicit; go 1.24
+github.com/go-jose/go-jose/v4
+github.com/go-jose/go-jose/v4/cipher
+github.com/go-jose/go-jose/v4/json
 # github.com/go-logr/logr v1.4.2
 ## explicit; go 1.18
 github.com/go-logr/logr
@@ -434,9 +439,19 @@ github.com/shopspring/decimal
 github.com/spf13/afero
 github.com/spf13/afero/internal/common
 github.com/spf13/afero/mem
-# github.com/spf13/cast v1.7.1
+# github.com/spf13/cast v1.8.0
 ## explicit; go 1.19
 github.com/spf13/cast
+# github.com/spiffe/go-spiffe/v2 v2.5.0
+## explicit; go 1.22.11
+github.com/spiffe/go-spiffe/v2/bundle/jwtbundle
+github.com/spiffe/go-spiffe/v2/bundle/spiffebundle
+github.com/spiffe/go-spiffe/v2/bundle/x509bundle
+github.com/spiffe/go-spiffe/v2/internal/cryptoutil
+github.com/spiffe/go-spiffe/v2/internal/jwtutil
+github.com/spiffe/go-spiffe/v2/internal/pemutil
+github.com/spiffe/go-spiffe/v2/internal/x509util
+github.com/spiffe/go-spiffe/v2/spiffeid
 # github.com/ulikunitz/xz v0.5.12
 ## explicit; go 1.12
 github.com/ulikunitz/xz
@@ -466,6 +481,9 @@ github.com/zclconf/go-cty/cty/set
 # github.com/zclconf/go-cty-yaml v1.1.0
 ## explicit; go 1.17
 github.com/zclconf/go-cty-yaml
+# github.com/zeebo/errs v1.4.0
+## explicit; go 1.12
+github.com/zeebo/errs
 # go.opentelemetry.io/auto/sdk v1.1.0
 ## explicit; go 1.22.0
 go.opentelemetry.io/auto/sdk
@@ -523,7 +541,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# golang.org/x/crypto v0.37.0
+# golang.org/x/crypto v0.38.0
 ## explicit; go 1.23.0
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
@@ -549,7 +567,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 # golang.org/x/mod v0.24.0
 ## explicit; go 1.23.0
 golang.org/x/mod/semver
-# golang.org/x/net v0.39.0
+# golang.org/x/net v0.40.0
 ## explicit; go 1.23.0
 golang.org/x/net/context
 golang.org/x/net/http/httpguts
@@ -561,7 +579,7 @@ golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.29.0
+# golang.org/x/oauth2 v0.30.0
 ## explicit; go 1.23.0
 golang.org/x/oauth2
 golang.org/x/oauth2/authhandler
@@ -573,17 +591,17 @@ golang.org/x/oauth2/google/internal/stsexchange
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.13.0
+# golang.org/x/sync v0.14.0
 ## explicit; go 1.23.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.32.0
+# golang.org/x/sys v0.33.0
 ## explicit; go 1.23.0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/text v0.24.0
+# golang.org/x/text v0.25.0
 ## explicit; go 1.23.0
 golang.org/x/text/cases
 golang.org/x/text/internal
@@ -599,7 +617,7 @@ golang.org/x/text/unicode/norm
 # golang.org/x/time v0.11.0
 ## explicit; go 1.23.0
 golang.org/x/time/rate
-# golang.org/x/tools v0.32.0
+# golang.org/x/tools v0.33.0
 ## explicit; go 1.23.0
 golang.org/x/tools/cmd/stringer
 golang.org/x/tools/go/gcexportdata
@@ -619,7 +637,7 @@ golang.org/x/tools/internal/stdlib
 golang.org/x/tools/internal/typeparams
 golang.org/x/tools/internal/typesinternal
 golang.org/x/tools/internal/versions
-# google.golang.org/api v0.229.0
+# google.golang.org/api v0.231.0
 ## explicit; go 1.23.0
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
@@ -636,13 +654,13 @@ google.golang.org/api/storage/v1
 google.golang.org/api/transport
 google.golang.org/api/transport/grpc
 google.golang.org/api/transport/http
-# google.golang.org/genproto v0.0.0-20250414145226-207652e42e2e
+# google.golang.org/genproto v0.0.0-20250505200425-f936aa4a68b2
 ## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/type/calendarperiod
 google.golang.org/genproto/googleapis/type/date
 google.golang.org/genproto/googleapis/type/expr
 google.golang.org/genproto/googleapis/type/timeofday
-# google.golang.org/genproto/googleapis/api v0.0.0-20250414145226-207652e42e2e
+# google.golang.org/genproto/googleapis/api v0.0.0-20250505200425-f936aa4a68b2
 ## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
@@ -651,13 +669,13 @@ google.golang.org/genproto/googleapis/api/expr/v1alpha1
 google.golang.org/genproto/googleapis/api/label
 google.golang.org/genproto/googleapis/api/metric
 google.golang.org/genproto/googleapis/api/monitoredres
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20250414145226-207652e42e2e
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20250505200425-f936aa4a68b2
 ## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.71.1
-## explicit; go 1.22.0
+# google.golang.org/grpc v1.72.0
+## explicit; go 1.23
 google.golang.org/grpc
 google.golang.org/grpc/attributes
 google.golang.org/grpc/authz/audit
@@ -713,6 +731,7 @@ google.golang.org/grpc/internal/admin
 google.golang.org/grpc/internal/backoff
 google.golang.org/grpc/internal/balancer/gracefulswitch
 google.golang.org/grpc/internal/balancer/nop
+google.golang.org/grpc/internal/balancer/weight
 google.golang.org/grpc/internal/balancergroup
 google.golang.org/grpc/internal/balancerload
 google.golang.org/grpc/internal/binarylog
@@ -720,6 +739,7 @@ google.golang.org/grpc/internal/buffer
 google.golang.org/grpc/internal/cache
 google.golang.org/grpc/internal/channelz
 google.golang.org/grpc/internal/credentials
+google.golang.org/grpc/internal/credentials/spiffe
 google.golang.org/grpc/internal/credentials/xds
 google.golang.org/grpc/internal/envconfig
 google.golang.org/grpc/internal/googlecloud
@@ -763,6 +783,7 @@ google.golang.org/grpc/reflection/internal
 google.golang.org/grpc/resolver
 google.golang.org/grpc/resolver/dns
 google.golang.org/grpc/resolver/manual
+google.golang.org/grpc/resolver/ringhash
 google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/stats/opentelemetry
