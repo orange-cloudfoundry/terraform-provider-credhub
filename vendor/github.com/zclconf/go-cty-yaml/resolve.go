@@ -1,9 +1,9 @@
 package yaml
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -101,6 +101,22 @@ func resolvableTag(tag string) bool {
 	return false
 }
 
+// isMergeKey returns true if the given event, if appearing in the key position
+// of a mapping, should be treated as a special "merge" directive that affects
+// the current mapping, instead of as a normal value.
+func isMergeKey(evt yaml_event_t) bool {
+	if evt.typ != yaml_SCALAR_EVENT {
+		return false // only a scalar can be a merge key
+	}
+	if len(evt.tag) == 0 && bytes.Equal(evt.value, []byte{'<', '<'}) {
+		return true
+	}
+	if bytes.Equal(evt.tag, []byte(yaml_MERGE_TAG)) {
+		return true
+	}
+	return false
+}
+
 var yamlStyleFloat = regexp.MustCompile(`^[-+]?(\.[0-9]+|[0-9]+(\.[0-9]*)?)([eE][-+]?[0-9]+)?$`)
 
 func (c *Converter) resolveScalar(tag string, src string, style yaml_scalar_style_t) (cty.Value, error) {
@@ -170,10 +186,6 @@ func (c *Converter) resolveScalar(tag string, src string, style yaml_scalar_styl
 		default:
 			panic(fmt.Sprintf("cannot resolve tag %q with source %q", tag, src))
 		}
-	}
-
-	if tag == "" && src == "<<" {
-		return mergeMappingVal, nil
 	}
 
 	switch tag {
@@ -286,8 +298,3 @@ func parseTimestamp(s string) (time.Time, bool) {
 	}
 	return time.Time{}, false
 }
-
-type mergeMapping struct{}
-
-var mergeMappingTy = cty.Capsule("merge mapping", reflect.TypeOf(mergeMapping{}))
-var mergeMappingVal = cty.CapsuleVal(mergeMappingTy, &mergeMapping{})

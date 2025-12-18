@@ -111,12 +111,7 @@ func (c *Converter) impliedTypeScalar(an *typeAnalysis, evt *yaml_event_t, p *ya
 		if err != nil {
 			return cty.NilType, parseEventErrorWrap(evt, err)
 		}
-		if v.RawEquals(mergeMappingVal) {
-			// In any context other than a mapping key, this is just a plain string
-			ty = cty.String
-		} else {
-			ty = v.Type()
-		}
+		ty = v.Type()
 	}
 
 	if len(anchor) > 0 {
@@ -151,27 +146,39 @@ func (c *Converter) impliedTypeMapping(an *typeAnalysis, evt *yaml_event_t, p *y
 			return ty, nil
 		}
 
+		if isMergeKey(nextEvt) {
+			// In this special case we'll try to merge the value, which must
+			// either be a mapping or a sequence of mappings, into the current
+			// mapping.
+			ty, err := c.impliedTypeParse(an, p)
+			if err != nil {
+				return cty.NilType, err
+			}
+			switch {
+			case ty.IsObjectType():
+				for name, aty := range ty.AttributeTypes() {
+					atys[name] = aty
+				}
+			case ty.IsTupleType():
+				for _, ety := range ty.TupleElementTypes() {
+					if !ety.IsObjectType() {
+						return cty.NilType, parseEventErrorf(&nextEvt, "cannot merge %s (from sequence) into mapping", ety.FriendlyName())
+					}
+					for name, aty := range ety.AttributeTypes() {
+						atys[name] = aty
+					}
+				}
+			default:
+				return cty.NilType, parseEventErrorf(&nextEvt, "cannot merge %s into mapping", ty.FriendlyName())
+			}
+			continue
+		}
 		if nextEvt.typ != yaml_SCALAR_EVENT {
 			return cty.NilType, parseEventErrorf(&nextEvt, "only strings are allowed as mapping keys")
 		}
 		keyVal, err := c.resolveScalar(string(nextEvt.tag), string(nextEvt.value), yaml_scalar_style_t(nextEvt.style))
 		if err != nil {
 			return cty.NilType, err
-		}
-		if keyVal.RawEquals(mergeMappingVal) {
-			// Merging the value (which must be a mapping) into our mapping,
-			// then.
-			ty, err := c.impliedTypeParse(an, p)
-			if err != nil {
-				return cty.NilType, err
-			}
-			if !ty.IsObjectType() {
-				return cty.NilType, parseEventErrorf(&nextEvt, "cannot merge %s into mapping", ty.FriendlyName())
-			}
-			for name, aty := range ty.AttributeTypes() {
-				atys[name] = aty
-			}
-			continue
 		}
 		if keyValStr, err := convert.Convert(keyVal, cty.String); err == nil {
 			keyVal = keyValStr

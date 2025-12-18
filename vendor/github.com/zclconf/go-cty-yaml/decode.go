@@ -85,6 +85,10 @@ func (c *Converter) unmarshalParseRemainder(an *valueAnalysis, evt *yaml_event_t
 	case yaml_STREAM_END_EVENT:
 		// Decoding an empty buffer, probably
 		return cty.NilVal, parseEventErrorf(evt, "expecting value but found end of stream")
+	case yaml_MAPPING_END_EVENT:
+		return cty.NilVal, parseEventErrorf(evt, "expecting value but found end of mapping")
+	case yaml_SEQUENCE_END_EVENT:
+		return cty.NilVal, parseEventErrorf(evt, "expecting value but found end of sequence")
 	default:
 		// Should never happen; the above should be comprehensive
 		return cty.NilVal, parseEventErrorf(evt, "unexpected parser event %s", evt.typ.String())
@@ -103,11 +107,6 @@ func (c *Converter) unmarshalScalar(an *valueAnalysis, evt *yaml_event_t, p *yam
 	val, err := c.resolveScalar(tag, string(src), yaml_scalar_style_t(evt.style))
 	if err != nil {
 		return cty.NilVal, parseEventErrorWrap(evt, err)
-	}
-
-	if val.RawEquals(mergeMappingVal) {
-		// In any context other than a mapping key, this is just a plain string
-		val = cty.StringVal("<<")
 	}
 
 	if len(anchor) > 0 {
@@ -142,29 +141,44 @@ func (c *Converter) unmarshalMapping(an *valueAnalysis, evt *yaml_event_t, p *ya
 			return v, nil
 		}
 
+		if isMergeKey(nextEvt) {
+			// In this special case we'll try to merge the value, which must
+			// either be a mapping or a sequence of mappings, into the current
+			// mapping.
+			val, err := c.unmarshalParse(an, p)
+			if err != nil {
+				return cty.NilVal, err
+			}
+			ty := val.Type()
+			switch {
+			case ty.IsObjectType() || ty.IsMapType():
+				for it := val.ElementIterator(); it.Next(); {
+					k, v := it.Element()
+					vals[k.AsString()] = v
+				}
+			case ty.IsTupleType() || ty.IsListType():
+				for it := val.ElementIterator(); it.Next(); {
+					_, m := it.Element()
+					ty := m.Type()
+					if !(ty.IsObjectType() || ty.IsMapType()) {
+						return cty.NilVal, parseEventErrorf(&nextEvt, "cannot merge %s (from sequence) into mapping", ty.FriendlyName())
+					}
+					for innerIt := m.ElementIterator(); innerIt.Next(); {
+						k, v := innerIt.Element()
+						vals[k.AsString()] = v
+					}
+				}
+			default:
+				return cty.NilVal, parseEventErrorf(&nextEvt, "cannot merge %s into mapping", ty.FriendlyName())
+			}
+			continue
+		}
 		if nextEvt.typ != yaml_SCALAR_EVENT {
 			return cty.NilVal, parseEventErrorf(&nextEvt, "only strings are allowed as mapping keys")
 		}
 		keyVal, err := c.resolveScalar(string(nextEvt.tag), string(nextEvt.value), yaml_scalar_style_t(nextEvt.style))
 		if err != nil {
 			return cty.NilVal, err
-		}
-		if keyVal.RawEquals(mergeMappingVal) {
-			// Merging the value (which must be a mapping) into our mapping,
-			// then.
-			val, err := c.unmarshalParse(an, p)
-			if err != nil {
-				return cty.NilVal, err
-			}
-			ty := val.Type()
-			if !(ty.IsObjectType() || ty.IsMapType()) {
-				return cty.NilVal, parseEventErrorf(&nextEvt, "cannot merge %s into mapping", ty.FriendlyName())
-			}
-			for it := val.ElementIterator(); it.Next(); {
-				k, v := it.Element()
-				vals[k.AsString()] = v
-			}
-			continue
 		}
 		if keyValStr, err := convert.Convert(keyVal, cty.String); err == nil {
 			keyVal = keyValStr

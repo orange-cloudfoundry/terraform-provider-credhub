@@ -1,3 +1,15 @@
+# 1.2.0 (December 17, 2025)
+
+* The YAML decoder now has more complete support for [`tag:yaml.org,2002:merge`](https://yaml.org/type/merge.html), including support for merging a sequence of mappings rather than just a single mapping.
+
+    Unfortunately the specification for this tag is terse and incomplete, and other existing implementations disagree even with the few behaviors that _are_ described in the specification, so this library implements behavior that matches existing implementations while diverging slightly from the spec:
+
+    - The untagged scalar value `<<` is resolved as `tag:yaml.org,2002:merge` only in the mapping key position. In all other positions it's resolved as a normal string, `"<<"`. Writing out the tag explicitly instead of using the shorthand is allowed in mapping key position and rejected as an error in all other positions.
+    - Multiple merge keys can appear in the same mapping, and will each be handled separately as if they had all been written as a single merge.
+    - Later mentions of a key override earlier mentions of a key in all cases. This is the main deviation from the spec text: the spec requires that the _earliest_ mention of each key takes priority when merging, but that is the opposite of the normal behavior for duplicate keys in a mapping (without merging) and other implementations seem to ignore that exception.
+
+    There are a few other implementations that disagree with what this library implements. That's unfortunate, but unavoidable because existing implementations are in conflict with one another already. The choices in this implementation were based on a survey of various other popular implementatins and will not be changed in a breaking way after this release.
+
 # 1.1.0 (October 2, 2024)
 
 * The YAML decoder now exactly follows the [YAML specification](https://yaml.org/spec/1.2-old/spec.html#id2805071) when resolving the implied YAML tags for integers. ([#6](https://github.com/zclconf/go-cty-yaml/pull/6))
