@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2017, 2025
 
 package disco
 
@@ -114,7 +114,7 @@ func (h *Host) ServiceURL(id string) (*url.URL, error) {
 
 	u, err := h.parseURL(urlStr)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse service URL: %v", err)
+		return nil, fmt.Errorf("failed to parse service URL: %v", err)
 	}
 
 	return u, nil
@@ -164,10 +164,11 @@ func (h *Host) ServiceOAuthClient(id string) (*OAuthClient, error) {
 	default:
 		// Debug message because raw Go types don't belong in our UI.
 		log.Printf("[DEBUG] The definition for %s has Go type %T", id, h.services[id])
-		return nil, fmt.Errorf("Service %s must be declared with an object value in the service discovery document", id)
+		return nil, fmt.Errorf("service %s must be declared with an object value in the service discovery document", id)
 	}
 
 	var grantTypes OAuthGrantTypeSet
+	//nolint:nestif
 	if rawGTs, ok := raw["grant_types"]; ok {
 		if gts, ok := rawGTs.([]interface{}); ok {
 			var kws []string
@@ -182,7 +183,7 @@ func (h *Host) ServiceOAuthClient(id string) (*OAuthClient, error) {
 			}
 			grantTypes = NewOAuthGrantTypeSet(kws...)
 		} else {
-			return nil, fmt.Errorf("Service %s is defined with invalid grant_types property: must be an array of grant type strings", id)
+			return nil, fmt.Errorf("service %s is defined with invalid grant_types property: must be an array of grant type strings", id)
 		}
 	} else {
 		grantTypes = NewOAuthGrantTypeSet("authz_code")
@@ -194,35 +195,32 @@ func (h *Host) ServiceOAuthClient(id string) (*OAuthClient, error) {
 	if clientIDStr, ok := raw["client"].(string); ok {
 		ret.ID = clientIDStr
 	} else {
-		return nil, fmt.Errorf("Service %s definition is missing required property \"client\"", id)
+		return nil, fmt.Errorf("service %s definition is missing required property \"client\"", id)
 	}
 	if urlStr, ok := raw["authz"].(string); ok {
 		u, err := h.parseURL(urlStr)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to parse authorization URL: %v", err)
+			return nil, fmt.Errorf("failed to parse authorization URL: %v", err)
 		}
 		ret.AuthorizationURL = u
-	} else {
-		if grantTypes.RequiresAuthorizationEndpoint() {
-			return nil, fmt.Errorf("Service %s definition is missing required property \"authz\"", id)
-		}
+	} else if grantTypes.RequiresAuthorizationEndpoint() {
+		return nil, fmt.Errorf("service %s definition is missing required property \"authz\"", id)
 	}
 	if urlStr, ok := raw["token"].(string); ok {
 		u, err := h.parseURL(urlStr)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to parse token URL: %v", err)
+			return nil, fmt.Errorf("failed to parse token URL: %v", err)
 		}
 		ret.TokenURL = u
-	} else {
-		if grantTypes.RequiresTokenEndpoint() {
-			return nil, fmt.Errorf("Service %s definition is missing required property \"token\"", id)
-		}
+	} else if grantTypes.RequiresTokenEndpoint() {
+		return nil, fmt.Errorf("service %s definition is missing required property \"token\"", id)
 	}
+	//nolint:nestif
 	if portsRaw, ok := raw["ports"].([]interface{}); ok {
 		if len(portsRaw) != 2 {
-			return nil, fmt.Errorf("Invalid \"ports\" definition for service %s: must be a two-element array", id)
+			return nil, fmt.Errorf("invalid \"ports\" definition for service %s: must be a two-element array", id)
 		}
-		invalidPortsErr := fmt.Errorf("Invalid \"ports\" definition for service %s: both ports must be whole numbers between 1024 and 65535", id)
+		invalidPortsErr := fmt.Errorf("invalid \"ports\" definition for service %s: both ports must be whole numbers between 1024 and 65535", id)
 		ports := make([]uint16, 2)
 		for i := range ports {
 			switch v := portsRaw[i].(type) {
@@ -247,7 +245,7 @@ func (h *Host) ServiceOAuthClient(id string) (*OAuthClient, error) {
 			}
 		}
 		if ports[1] < ports[0] {
-			return nil, fmt.Errorf("Invalid \"ports\" definition for service %s: minimum port cannot be greater than maximum port", id)
+			return nil, fmt.Errorf("invalid \"ports\" definition for service %s: minimum port cannot be greater than maximum port", id)
 		}
 		ret.MinPort = ports[0]
 		ret.MaxPort = ports[1]
@@ -262,7 +260,7 @@ func (h *Host) ServiceOAuthClient(id string) (*OAuthClient, error) {
 		for _, scopeI := range scopesRaw {
 			scope, ok := scopeI.(string)
 			if !ok {
-				return nil, fmt.Errorf("Invalid \"scopes\" for service %s: all scopes must be strings", id)
+				return nil, fmt.Errorf("invalid \"scopes\" for service %s: all scopes must be strings", id)
 			}
 			scopes = append(scopes, scope)
 		}
@@ -303,7 +301,7 @@ func (h *Host) parseURL(urlStr string) (*url.URL, error) {
 // that service are returned.
 //
 // When the requested version is not provided but the service is, we will
-// search for all alternative versions. If mutliple alternative versions
+// search for all alternative versions. If multiple alternative versions
 // are found, the contrains of the latest available version are returned.
 //
 // When a service is not provided at all an error will be returned instead.
@@ -334,6 +332,7 @@ func (h *Host) VersionConstraints(id, product string) (*Constraints, error) {
 	}
 
 	// Check if we have an exact (service and version) match.
+	//nolint:nestif
 	if _, ok := h.services[id].(string); !ok {
 		// If we don't have an exact match, we search for all matching
 		// services and then use the service ID of the latest version.
@@ -381,7 +380,7 @@ func (h *Host) VersionConstraints(id, product string) (*Constraints, error) {
 	// Create a new request.
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create version constraints request: %v", err)
+		return nil, fmt.Errorf("failed to create version constraints request: %v", err)
 	}
 	req.Header.Set("Accept", "application/json")
 
@@ -389,7 +388,7 @@ func (h *Host) VersionConstraints(id, product string) (*Constraints, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to request version constraints: %v", err)
+		return nil, fmt.Errorf("failed to request version constraints: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -398,7 +397,7 @@ func (h *Host) VersionConstraints(id, product string) (*Constraints, error) {
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("Failed to request version constraints: %s", resp.Status)
+		return nil, fmt.Errorf("failed to request version constraints: %s", resp.Status)
 	}
 
 	// Parse the constraints from the response body.
@@ -413,13 +412,13 @@ func (h *Host) VersionConstraints(id, product string) (*Constraints, error) {
 func parseServiceID(id string) (string, *version.Version, error) {
 	parts := strings.SplitN(id, ".", 2)
 	if len(parts) != 2 {
-		return "", nil, fmt.Errorf("Invalid service ID format (i.e. service.vN): %s", id)
+		return "", nil, fmt.Errorf("invalid service ID format (i.e. service.vN): %s", id)
 	}
 
-	version, err := version.NewVersion(parts[1])
+	parsedVersion, err := version.NewVersion(parts[1])
 	if err != nil {
-		return "", nil, fmt.Errorf("Invalid service version: %v", err)
+		return "", nil, fmt.Errorf("invalid service version: %v", err)
 	}
 
-	return parts[0], version, nil
+	return parts[0], parsedVersion, nil
 }

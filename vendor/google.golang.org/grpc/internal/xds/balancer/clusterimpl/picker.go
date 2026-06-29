@@ -26,11 +26,14 @@ import (
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/internal/envconfig"
 	"google.golang.org/grpc/internal/stats"
 	"google.golang.org/grpc/internal/wrr"
 	xdsinternal "google.golang.org/grpc/internal/xds"
 	"google.golang.org/grpc/internal/xds/clients"
 	"google.golang.org/grpc/internal/xds/xdsclient"
+	"google.golang.org/grpc/internal/xds/xdsclient/xdsresource"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -89,6 +92,7 @@ type picker struct {
 	countMax        uint32
 	telemetryLabels map[string]string
 	clusterName     string
+	metrics         *xdsresource.LRSReportEndpointMetricsConfig
 }
 
 func telemetryLabels(ctx context.Context) map[string]string {
@@ -144,7 +148,15 @@ func (d *picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 		pr.SubConn = scw.SubConn
 		// If locality ID isn't found in the wrapper, an empty locality ID will
 		// be used.
-		lID = scw.localityID()
+		lID = scw.localityID
+
+		if scw.hostname != "" && autoHostRewriteEnabled(info.Ctx) {
+			if pr.Metadata == nil {
+				pr.Metadata = metadata.Pairs(":authority", scw.hostname)
+			} else {
+				pr.Metadata.Set(":authority", scw.hostname)
+			}
+		}
 	}
 
 	if err != nil {
@@ -174,8 +186,29 @@ func (d *picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 			if !ok || load == nil {
 				return
 			}
-			for n, c := range load.NamedMetrics {
-				d.loadStore.CallServerLoad(locality, n, c)
+
+			if envconfig.XDSORCAToLRSPropEnabled {
+				if d.metrics != nil {
+					if d.metrics.CPUUtilization {
+						d.loadStore.CallServerLoad(locality, "cpu_utilization", load.CpuUtilization)
+					}
+					if d.metrics.MemUtilization {
+						d.loadStore.CallServerLoad(locality, "mem_utilization", load.MemUtilization)
+					}
+					if d.metrics.ApplicationUtilization {
+						d.loadStore.CallServerLoad(locality, "application_utilization", load.ApplicationUtilization)
+					}
+					for n, c := range load.NamedMetrics {
+						_, ok := d.metrics.NamedMetrics[n]
+						if d.metrics.NamedMetricsAll || ok {
+							d.loadStore.CallServerLoad(locality, "named_metrics."+n, c)
+						}
+					}
+				}
+			} else {
+				for n, c := range load.NamedMetrics {
+					d.loadStore.CallServerLoad(locality, n, c)
+				}
 			}
 		}
 	}
@@ -193,4 +226,26 @@ func (d *picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 	}
 
 	return pr, err
+}
+
+// autoHostRewriteKey is the context key used to store the value of
+// route's autoHostRewrite in the RPC context.
+type autoHostRewriteKey struct{}
+
+// autoHostRewriteEnabled retrieves the autoHostRewrite value from the provided context.
+func autoHostRewriteEnabled(ctx context.Context) bool {
+	v, _ := ctx.Value(autoHostRewriteKey{}).(bool)
+	return v
+}
+
+// AutoHostRewriteEnabledForTesting returns the value of autoHostRewrite field;
+// to be used for testing only.
+func AutoHostRewriteEnabledForTesting(ctx context.Context) bool {
+	return autoHostRewriteEnabled(ctx)
+}
+
+// EnableAutoHostRewrite adds the autoHostRewrite value to the context for
+// the xds_cluster_impl LB policy to pick.
+func EnableAutoHostRewrite(ctx context.Context) context.Context {
+	return context.WithValue(ctx, autoHostRewriteKey{}, true)
 }

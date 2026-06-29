@@ -19,7 +19,6 @@
 package resolver
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"math/bits"
@@ -35,8 +34,8 @@ import (
 	iringhash "google.golang.org/grpc/internal/ringhash"
 	"google.golang.org/grpc/internal/serviceconfig"
 	"google.golang.org/grpc/internal/wrr"
+	"google.golang.org/grpc/internal/xds/balancer/clusterimpl"
 	"google.golang.org/grpc/internal/xds/balancer/clustermanager"
-	"google.golang.org/grpc/internal/xds/httpfilter"
 	"google.golang.org/grpc/internal/xds/xdsclient/xdsresource"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -74,11 +73,14 @@ type xdsClusterManagerConfig struct {
 // serviceConfigJSON produces a service config in JSON format that contains LB
 // policy config for the "xds_cluster_manager" LB policy, with entries in the
 // children map for all active clusters.
-func serviceConfigJSON(activeClusters map[string]*clusterInfo) []byte {
+func serviceConfigJSON(activeClusters map[string]*clusterInfo, activePlugins map[string]*clusterInfo) []byte {
 	// Generate children (all entries in activeClusters).
 	children := make(map[string]xdsChildConfig)
 	for cluster, ci := range activeClusters {
 		children[cluster] = ci.cfg
+	}
+	for plugin, ci := range activePlugins {
+		children[plugin] = ci.cfg
 	}
 
 	sc := serviceConfig{
@@ -97,28 +99,25 @@ func serviceConfigJSON(activeClusters map[string]*clusterInfo) []byte {
 }
 
 type virtualHost struct {
-	// map from filter name to its config
-	httpFilterConfigOverride map[string]httpfilter.FilterConfig
 	// retry policy present in virtual host
 	retryConfig *xdsresource.RetryConfig
 }
 
 // routeCluster holds information about a cluster as referenced by a route.
 type routeCluster struct {
-	name string
-	// map from filter name to its config
-	httpFilterConfigOverride map[string]httpfilter.FilterConfig
+	name        string                      // Name of the cluster.
+	interceptor iresolver.ClientInterceptor // HTTP filters to run for RPCs matching this route.
 }
 
 type route struct {
 	m                 *xdsresource.CompositeMatcher // converted from route matchers
 	actionType        xdsresource.RouteActionType   // holds route action type
 	clusters          wrr.WRR                       // holds *routeCluster entries
+	interceptors      []iresolver.ClientInterceptor // Interceptors across clusters belonging to this route
 	maxStreamDuration time.Duration
-	// map from filter name to its config
-	httpFilterConfigOverride map[string]httpfilter.FilterConfig
-	retryConfig              *xdsresource.RetryConfig
-	hashPolicies             []*xdsresource.HashPolicy
+	retryConfig       *xdsresource.RetryConfig
+	hashPolicies      []*xdsresource.HashPolicy
+	autoHostRewrite   bool
 }
 
 func (r route) String() string {
@@ -159,7 +158,9 @@ type configSelector struct {
 	virtualHost      virtualHost
 	routes           []route
 	clusters         map[string]*clusterInfo
+	plugins          map[string]*clusterInfo
 	httpFilterConfig []xdsresource.HTTPFilter
+	xdsConfig        *xdsresource.XDSConfig
 }
 
 var errNoMatchedRouteFound = status.Errorf(codes.Unavailable, "no matched route was found")
@@ -197,16 +198,21 @@ func (cs *configSelector) SelectConfig(rpcInfo iresolver.RPCInfo) (*iresolver.RP
 
 	// Add a ref to the selected cluster, as this RPC needs this cluster until
 	// it is committed.
-	ref := &cs.clusters[cluster.name].refCount
+	var ref *int32
+	if info, ok := cs.clusters[cluster.name]; ok {
+		ref = &info.refCount
+	}
+	if info, ok := cs.plugins[cluster.name]; ok {
+		ref = &info.refCount
+	}
 	atomic.AddInt32(ref, 1)
 
-	interceptor, err := cs.newInterceptor(rt, cluster)
-	if err != nil {
-		return nil, annotateErrorWithNodeID(err, cs.xdsNodeID)
-	}
-
 	lbCtx := clustermanager.SetPickedCluster(rpcInfo.Context, cluster.name)
+	lbCtx = xdsresource.NewContextWithXDSConfig(lbCtx, cs.xdsConfig)
 	lbCtx = iringhash.SetXDSRequestHash(lbCtx, cs.generateHash(rpcInfo, rt.hashPolicies))
+	if rt.autoHostRewrite {
+		lbCtx = clusterimpl.EnableAutoHostRewrite(lbCtx)
+	}
 
 	config := &iresolver.RPCConfig{
 		// Communicate to the LB policy the chosen cluster and request hash, if Ring Hash LB policy.
@@ -214,13 +220,28 @@ func (cs *configSelector) SelectConfig(rpcInfo iresolver.RPCInfo) (*iresolver.RP
 		OnCommitted: func() {
 			// When the RPC is committed, the cluster is no longer required.
 			// Decrease its ref.
-			if v := atomic.AddInt32(ref, -1); v == 0 {
-				// This entry will be removed from activeClusters when
-				// producing the service config for the empty update.
-				cs.sendNewServiceConfig()
+			if info, ok := cs.clusters[cluster.name]; ok {
+				ref := &info.refCount
+				if v := atomic.AddInt32(ref, -1); v == 0 {
+					// We call unsubscribe rather than sendNewServiceConfig to
+					// prevent redundant updates. If the reference count in the
+					// dependency manager drops to zero, it will automatically
+					// trigger a service config update with this cluster
+					// removed. Calling unsubscribe allows the dependency
+					// manager to handle the update flow once and for all.
+					info.unsubscribe()
+				}
+			}
+			if info, ok := cs.plugins[cluster.name]; ok {
+				ref := &info.refCount
+				if v := atomic.AddInt32(ref, -1); v == 0 {
+					// This entry will be removed from activePlugins when
+					// producing a new service config update.
+					cs.sendNewServiceConfig()
+				}
 			}
 		},
-		Interceptor: interceptor,
+		Interceptor: cluster.interceptor,
 	}
 
 	if rt.maxStreamDuration != 0 {
@@ -310,70 +331,32 @@ func (cs *configSelector) generateHash(rpcInfo iresolver.RPCInfo, hashPolicies [
 	return rand.Uint64()
 }
 
-func (cs *configSelector) newInterceptor(rt *route, cluster *routeCluster) (iresolver.ClientInterceptor, error) {
-	if len(cs.httpFilterConfig) == 0 {
-		return nil, nil
-	}
-	interceptors := make([]iresolver.ClientInterceptor, 0, len(cs.httpFilterConfig))
-	for _, filter := range cs.httpFilterConfig {
-		override := cluster.httpFilterConfigOverride[filter.Name] // cluster is highest priority
-		if override == nil {
-			override = rt.httpFilterConfigOverride[filter.Name] // route is second priority
-		}
-		if override == nil {
-			override = cs.virtualHost.httpFilterConfigOverride[filter.Name] // VH is third & lowest priority
-		}
-		ib, ok := filter.Filter.(httpfilter.ClientInterceptorBuilder)
-		if !ok {
-			// Should not happen if it passed xdsClient validation.
-			return nil, fmt.Errorf("filter does not support use in client")
-		}
-		i, err := ib.BuildClientInterceptor(filter.Config, override)
-		if err != nil {
-			return nil, fmt.Errorf("error constructing filter: %v", err)
-		}
-		if i != nil {
-			interceptors = append(interceptors, i)
-		}
-	}
-	return &interceptorList{interceptors: interceptors}, nil
-}
-
 // stop decrements refs of all clusters referenced by this config selector.
 func (cs *configSelector) stop() {
 	// The resolver's old configSelector may be nil.  Handle that here.
 	if cs == nil {
 		return
 	}
-	// If any refs drop to zero, we'll need a service config update to delete
-	// the cluster.
-	needUpdate := false
-	// Loops over cs.clusters, but these are pointers to entries in
-	// activeClusters.
+
+	// Stop all interceptors associated with this config selector.
+	for _, r := range cs.routes {
+		for _, i := range r.interceptors {
+			i.Close()
+		}
+	}
+
+	// If any reference counts drop to zero, a service config update is required
+	// to remove the clusters. Since the old config selector is stopped
+	// after a new one is active, we must trigger a subsequent update to delete
+	// the now-unused clusters.
 	for _, ci := range cs.clusters {
 		if v := atomic.AddInt32(&ci.refCount, -1); v == 0 {
-			needUpdate = true
+			ci.unsubscribe()
 		}
 	}
-	// We stop the old config selector immediately after sending a new config
-	// selector; we need another update to delete clusters from the config (if
-	// we don't have another update pending already).
-	if needUpdate {
-		cs.sendNewServiceConfig()
-	}
-}
-
-type interceptorList struct {
-	interceptors []iresolver.ClientInterceptor
-}
-
-func (il *interceptorList) NewStream(ctx context.Context, ri iresolver.RPCInfo, _ func(), newStream func(ctx context.Context, _ func()) (iresolver.ClientStream, error)) (iresolver.ClientStream, error) {
-	for i := len(il.interceptors) - 1; i >= 0; i-- {
-		ns := newStream
-		interceptor := il.interceptors[i]
-		newStream = func(ctx context.Context, done func()) (iresolver.ClientStream, error) {
-			return interceptor.NewStream(ctx, ri, done, ns)
+	for _, ci := range cs.plugins {
+		if v := atomic.AddInt32(&ci.refCount, -1); v == 0 {
+			cs.sendNewServiceConfig()
 		}
 	}
-	return newStream(ctx, func() {})
 }
