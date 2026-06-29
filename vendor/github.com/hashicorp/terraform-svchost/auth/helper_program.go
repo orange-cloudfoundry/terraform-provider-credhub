@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2017, 2025
 
 package auth
 
@@ -9,9 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	svchost "github.com/hashicorp/terraform-svchost"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
-
-	"github.com/hashicorp/terraform-svchost"
 )
 
 type helperProgramCredentialsSource struct {
@@ -49,8 +48,7 @@ func HelperProgramCredentialsSource(executable string, args ...string) Credentia
 func (s *helperProgramCredentialsSource) ForHost(host svchost.Hostname) (HostCredentials, error) {
 	args := make([]string, len(s.args), len(s.args)+2)
 	copy(args, s.args)
-	args = append(args, "get")
-	args = append(args, string(host))
+	args = append(args, "get", string(host))
 
 	outBuf := bytes.Buffer{}
 	errBuf := bytes.Buffer{}
@@ -86,8 +84,7 @@ func (s *helperProgramCredentialsSource) ForHost(host svchost.Hostname) (HostCre
 func (s *helperProgramCredentialsSource) StoreForHost(host svchost.Hostname, credentials HostCredentialsWritable) error {
 	args := make([]string, len(s.args), len(s.args)+2)
 	copy(args, s.args)
-	args = append(args, "store")
-	args = append(args, string(host))
+	args = append(args, "store", string(host))
 
 	toStore := credentials.ToStore()
 	toStoreRaw, err := ctyjson.Marshal(toStore, toStore.Type())
@@ -123,8 +120,7 @@ func (s *helperProgramCredentialsSource) StoreForHost(host svchost.Hostname, cre
 func (s *helperProgramCredentialsSource) ForgetForHost(host svchost.Hostname) error {
 	args := make([]string, len(s.args), len(s.args)+2)
 	copy(args, s.args)
-	args = append(args, "forget")
-	args = append(args, string(host))
+	args = append(args, "forget", string(host))
 
 	errBuf := bytes.Buffer{}
 

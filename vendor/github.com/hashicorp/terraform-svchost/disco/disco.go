@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2017, 2026
 
 // Package disco handles Terraform's remote service discovery protocol.
 //
@@ -19,6 +19,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-cleanhttp"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 )
@@ -30,15 +32,27 @@ const (
 	// Arbitrary-but-small number to prevent runaway redirect loops.
 	maxRedirects = 3
 
-	// Arbitrary-but-small time limit to prevent UI "hangs" during discovery.
-	discoTimeout = 11 * time.Second
+	// This should be a fast response, and will be retried up to 3 times.
+	discoTimeout = 5 * time.Second
 
 	// 1MB - to prevent abusive services from using loads of our memory.
 	maxDiscoDocBytes = 1 * 1024 * 1024
 )
 
 // httpTransport is overridden during tests, to skip TLS verification.
-var httpTransport = defaultHttpTransport()
+var httpTransport = newUserAgentTransport(
+	DefaultUserAgent,
+	cleanhttp.DefaultPooledTransport(),
+)
+
+// retryWaitMin and retryWaitMax control the back-off delays between retries.
+// They are package-level variables so that tests can override them to avoid
+// slow wait times.
+var (
+	retryWaitMin = 100 * time.Millisecond
+	retryWaitMax = 1 * time.Second
+	retryMax     = 3
+)
 
 // Disco is the main type in this package, which allows discovery on given
 // hostnames and caches the results by hostname to avoid repeated requests
@@ -62,8 +76,8 @@ type ErrServiceDiscoveryNetworkRequest struct {
 }
 
 func (e ErrServiceDiscoveryNetworkRequest) Error() string {
-	wrapped_error := fmt.Errorf("failed to request discovery document: %w", e.err)
-	return wrapped_error.Error()
+	wrappedError := fmt.Errorf("failed to request discovery document: %w", e.err)
+	return wrappedError.Error()
 }
 
 // New returns a new initialized discovery object.
@@ -83,10 +97,10 @@ func NewWithCredentialsSource(credsSrc auth.CredentialsSource) *Disco {
 }
 
 func (d *Disco) SetUserAgent(uaString string) {
-	d.Transport = &userAgentRoundTripper{
-		innerRt:   d.Transport,
-		userAgent: uaString,
-	}
+	d.Transport = newUserAgentTransport(
+		uaString,
+		cleanhttp.DefaultPooledTransport(),
+	)
 }
 
 // SetCredentialsSource provides a credentials source that will be used to
@@ -225,13 +239,17 @@ func (d *Disco) discover(hostname svchost.Hostname) (*Host, error) {
 	}
 	d.mu.Unlock()
 
-	discoURL := &url.URL{
-		Scheme: "https",
-		Host:   hostname.String(),
-		Path:   discoPath,
-	}
+	return d.discoverRemote(hostname)
+}
 
-	client := &http.Client{
+func (d *Disco) discoverRemote(hostname svchost.Hostname) (*Host, error) {
+	client := retryablehttp.NewClient()
+	client.RetryMax = retryMax
+	client.RetryWaitMin = retryWaitMin
+	client.RetryWaitMax = retryWaitMax
+	client.Logger = nil
+
+	client.HTTPClient = &http.Client{
 		Transport: d.Transport,
 		Timeout:   discoTimeout,
 
@@ -244,10 +262,15 @@ func (d *Disco) discover(hostname svchost.Hostname) (*Host, error) {
 		},
 	}
 
-	req := &http.Request{
-		Header: make(http.Header),
-		Method: "GET",
-		URL:    discoURL,
+	discoURL := &url.URL{
+		Scheme: "https",
+		Host:   hostname.String(),
+		Path:   discoPath,
+	}
+
+	req, err := retryablehttp.NewRequest("GET", discoURL.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create discovery request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 
@@ -257,7 +280,7 @@ func (d *Disco) discover(hostname svchost.Hostname) (*Host, error) {
 	}
 	if creds != nil {
 		// Update the request to include credentials.
-		creds.PrepareRequest(req)
+		creds.PrepareRequest(req.Request)
 	}
 
 	log.Printf("[DEBUG] Service discovery for %s at %s", hostname, discoURL)
