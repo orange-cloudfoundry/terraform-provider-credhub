@@ -6,7 +6,7 @@ require (
 	code.cloudfoundry.org/credhub-cli v0.0.0-20260622130231-57c8cb0f1d6e
 	github.com/azer/snakecase v1.0.0
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
-	golang.org/x/text v0.38.0
+	golang.org/x/text v0.39.0
 )
 
 require (
