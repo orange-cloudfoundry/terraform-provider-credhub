@@ -4,11 +4,10 @@ package signin
 
 import (
 	"context"
-	"fmt"
-	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
+	"github.com/aws/aws-sdk-go-v2/service/signin/schemas"
+	smithy "github.com/aws/smithy-go"
 	"github.com/aws/smithy-go/middleware"
 	"github.com/aws/smithy-go/ptr"
-	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
 // Enable console authorization configuration with automatic scope detection
@@ -36,6 +35,17 @@ type PutConsoleAuthorizationConfigurationInput struct {
 	noSmithyDocumentSerde
 }
 
+func (v *PutConsoleAuthorizationConfigurationInput) Serialize(s smithy.ShapeSerializer) {
+	s.WriteStruct(schemas.PutConsoleAuthorizationConfigurationInput)
+	v.SerializeMembers(s)
+	s.CloseStruct()
+}
+
+func (v *PutConsoleAuthorizationConfigurationInput) SerializeMembers(s smithy.ShapeSerializer) {
+	if v.TargetId != nil {
+		s.WriteString(schemas.PutConsoleAuthorizationConfigurationInput_targetId, *v.TargetId)
+	}
+}
 func (in *PutConsoleAuthorizationConfigurationInput) bindEndpointParams(p *EndpointParameters) {
 
 	p.IsControlPlane = ptr.Bool(true)
@@ -65,74 +75,57 @@ type PutConsoleAuthorizationConfigurationOutput struct {
 	noSmithyDocumentSerde
 }
 
+func (v *PutConsoleAuthorizationConfigurationOutput) Serialize(s smithy.ShapeSerializer) {
+	s.WriteStruct(schemas.PutConsoleAuthorizationConfigurationOutput)
+	v.SerializeMembers(s)
+	s.CloseStruct()
+}
+
+func (v *PutConsoleAuthorizationConfigurationOutput) SerializeMembers(s smithy.ShapeSerializer) {
+	if v.ConsoleAuthorizationEnabled != nil {
+		s.WriteBool(schemas.PutConsoleAuthorizationConfigurationOutput_consoleAuthorizationEnabled, *v.ConsoleAuthorizationEnabled)
+	}
+	if v.Scope != nil {
+		s.WriteString(schemas.PutConsoleAuthorizationConfigurationOutput_scope, *v.Scope)
+	}
+	if v.TargetId != nil {
+		s.WriteString(schemas.PutConsoleAuthorizationConfigurationOutput_targetId, *v.TargetId)
+	}
+}
+func (v *PutConsoleAuthorizationConfigurationOutput) Deserialize(d smithy.ShapeDeserializer) error {
+	return smithy.ReadStruct(d, schemas.PutConsoleAuthorizationConfigurationOutput, func(s *smithy.Schema) error {
+		switch s {
+		case schemas.PutConsoleAuthorizationConfigurationOutput_consoleAuthorizationEnabled:
+			v.ConsoleAuthorizationEnabled = new(bool)
+			return d.ReadBool(schemas.PutConsoleAuthorizationConfigurationOutput_consoleAuthorizationEnabled, v.ConsoleAuthorizationEnabled)
+		case schemas.PutConsoleAuthorizationConfigurationOutput_scope:
+			v.Scope = new(string)
+			return d.ReadString(schemas.PutConsoleAuthorizationConfigurationOutput_scope, v.Scope)
+		case schemas.PutConsoleAuthorizationConfigurationOutput_targetId:
+			v.TargetId = new(string)
+			return d.ReadString(schemas.PutConsoleAuthorizationConfigurationOutput_targetId, v.TargetId)
+		}
+		return nil
+	})
+}
 func (c *Client) addOperationPutConsoleAuthorizationConfigurationMiddlewares(stack *middleware.Stack, options Options) (err error) {
-	if err := stack.Serialize.Add(&setOperationInputMiddleware{}, middleware.After); err != nil {
+	if err := stack.Serialize.Add(&serializeRequestMiddleware{options: &options, operationSchema: smithy.NewOperationSchema(schemas.PutConsoleAuthorizationConfiguration, schemas.PutConsoleAuthorizationConfigurationInput, schemas.PutConsoleAuthorizationConfigurationOutput)}, middleware.After); err != nil {
 		return err
 	}
-	err = stack.Serialize.Add(&awsRestjson1_serializeOpPutConsoleAuthorizationConfiguration{}, middleware.After)
-	if err != nil {
+	if err := stack.Deserialize.Add(&deserializeResponseMiddleware{options: &options, operationSchema: smithy.NewOperationSchema(schemas.PutConsoleAuthorizationConfiguration, schemas.PutConsoleAuthorizationConfigurationInput, schemas.PutConsoleAuthorizationConfigurationOutput), output: &PutConsoleAuthorizationConfigurationOutput{}}, middleware.After); err != nil {
 		return err
-	}
-	err = stack.Deserialize.Add(&awsRestjson1_deserializeOpPutConsoleAuthorizationConfiguration{}, middleware.After)
-	if err != nil {
-		return err
-	}
-	if err := addProtocolFinalizerMiddlewares(stack, options, "PutConsoleAuthorizationConfiguration"); err != nil {
-		return fmt.Errorf("add protocol finalizers: %v", err)
 	}
 
-	if err = addlegacyEndpointContextSetter(stack, options); err != nil {
-		return err
-	}
-	if err = addSetLoggerMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addClientRequestID(stack); err != nil {
-		return err
-	}
-	if err = addComputeContentLength(stack); err != nil {
-		return err
-	}
 	if err = addResolveEndpointMiddleware(stack, options); err != nil {
 		return err
 	}
 	if err = addComputePayloadSHA256(stack); err != nil {
 		return err
 	}
-	if err = addRetry(stack, options, c); err != nil {
-		return err
-	}
-	if err = addRawResponseToMetadata(stack); err != nil {
-		return err
-	}
-	if err = addRecordResponseTiming(stack); err != nil {
-		return err
-	}
-	if err = addSpanRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addClientUserAgent(stack, options); err != nil {
-		return err
-	}
-	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
-		return err
-	}
-	if err = smithyhttp.AddCloseResponseBodyMiddleware(stack); err != nil {
-		return err
-	}
-	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
-		return err
-	}
-	if err = addUserAgentRetryMode(stack, options); err != nil {
+	if err = addRecordResponseTiming(stack, options); err != nil {
 		return err
 	}
 	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
-	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opPutConsoleAuthorizationConfiguration(options.Region), middleware.Before); err != nil {
-		return err
-	}
-	if err = addRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {
@@ -147,22 +140,8 @@ func (c *Client) addOperationPutConsoleAuthorizationConfigurationMiddlewares(sta
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
 	if err = addInterceptors(stack, options); err != nil {
 		return err
 	}
 	return nil
-}
-
-func newServiceMetadataMiddleware_opPutConsoleAuthorizationConfiguration(region string) *awsmiddleware.RegisterServiceMetadata {
-	return &awsmiddleware.RegisterServiceMetadata{
-		Region:        region,
-		ServiceID:     ServiceID,
-		OperationName: "PutConsoleAuthorizationConfiguration",
-	}
 }
