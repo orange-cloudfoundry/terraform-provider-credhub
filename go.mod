@@ -1,6 +1,6 @@
 module github.com/orange-cloudfoundry/terraform-provider-credhub
 
-go 1.26.11
+go 1.27.4
 
 require (
 	code.cloudfoundry.org/credhub-cli v0.0.0-20261123140128-302644006641
